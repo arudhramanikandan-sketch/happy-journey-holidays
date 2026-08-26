@@ -1,0 +1,6 @@
+{
+  "name": "Happy Journey Holidays",
+  "description": "Premium travel agency website for Happy Journey Holidays in Coimbatore, offering international & domestic holiday packages, flights, hotels, visas, and custom trips.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
