@@ -5,7 +5,8 @@ export type PageRoute =
   | '/services'
   | '/custom-trip'
   | '/about'
-  | '/contact';
+  | '/contact'
+  | '/admin';
 
 export type TripType = 
   | 'Honeymoon'
@@ -33,20 +34,41 @@ export interface Destination {
   featured?: boolean;
 }
 
+export interface DayItinerary {
+  day: number;
+  title: string;
+  description: string;
+}
+
 export interface HolidayPackage {
   id: string;
   title: string;
+  name?: string;
   destination: string;
   category: 'international' | 'domestic';
+  days?: number;
+  nights?: number;
   duration: string; // e.g. "4 Nights / 5 Days"
   startingPrice: string; // e.g. "₹24,999"
   originalPrice?: string;
+  offerPrice?: string;
+  priceDisplayText?: string;
+  shortDescription?: string;
+  fullDescription?: string;
   image: string;
+  galleryImages?: string[];
   highlights: string[];
   inclusions: string[];
+  exclusions?: string[];
   featured?: boolean;
+  isHidden?: boolean;
+  sortOrder?: number;
   bestFor: string; // e.g. "Couples & Families"
-  itinerarySummary: string[];
+  itinerarySummary?: string[];
+  dayWiseItinerary?: DayItinerary[];
+  bookingInformation?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface TravelService {

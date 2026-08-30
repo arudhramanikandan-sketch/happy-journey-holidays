@@ -23,7 +23,6 @@ import {
 import { PageRoute, Destination, HolidayPackage } from '../types';
 import { 
   INTERNATIONAL_DESTINATIONS, 
-  FEATURED_PACKAGES, 
   TRAVEL_SERVICES, 
   TESTIMONIALS, 
   WHY_CHOOSE_US, 
@@ -33,6 +32,7 @@ import { DestinationCard } from '../components/DestinationCard';
 import { PackageCard } from '../components/PackageCard';
 import { ServiceCard } from '../components/ServiceCard';
 import { createWhatsAppLink } from '../utils/whatsapp';
+import { usePublicPackages } from '../utils/usePackages';
 
 interface HomePageProps {
   onNavigate: (route: PageRoute) => void;
@@ -43,6 +43,8 @@ export const HomePage: React.FC<HomePageProps> = ({
   onNavigate, 
   onOpenQuoteModal 
 }) => {
+  const { packages: dynamicPackages } = usePublicPackages();
+  const [selectedHomeCategory, setSelectedHomeCategory] = useState<'all' | 'international' | 'domestic'>('all');
   // Quick hero search state
   const [searchDest, setSearchDest] = useState('');
   const [searchMonth, setSearchMonth] = useState('Next 30 Days');
@@ -308,14 +310,32 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => onNavigate('/international-holidays')}
-              className="text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-[#002447] text-white border border-[#003d75] hover:border-[#F27D26] transition"
+              onClick={() => setSelectedHomeCategory('all')}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition ${
+                selectedHomeCategory === 'all'
+                  ? 'bg-[#F27D26] text-white border-[#F27D26]'
+                  : 'bg-[#001529] text-slate-300 border-[#002b54] hover:text-white'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setSelectedHomeCategory('international')}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition ${
+                selectedHomeCategory === 'international'
+                  ? 'bg-[#F27D26] text-white border-[#F27D26]'
+                  : 'bg-[#001529] text-slate-300 border-[#002b54] hover:text-white'
+              }`}
             >
               International
             </button>
             <button
-              onClick={() => onNavigate('/domestic-holidays')}
-              className="text-xs font-semibold px-3.5 py-1.5 rounded-lg bg-[#001529] text-slate-300 border border-[#002b54] hover:text-white transition"
+              onClick={() => setSelectedHomeCategory('domestic')}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition ${
+                selectedHomeCategory === 'domestic'
+                  ? 'bg-[#F27D26] text-white border-[#F27D26]'
+                  : 'bg-[#001529] text-slate-300 border-[#002b54] hover:text-white'
+              }`}
             >
               Domestic
             </button>
@@ -324,7 +344,10 @@ export const HomePage: React.FC<HomePageProps> = ({
 
         {/* Featured Package cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {FEATURED_PACKAGES.slice(0, 6).map((pkg) => (
+          {(selectedHomeCategory === 'all'
+            ? dynamicPackages
+            : dynamicPackages.filter(p => p.category === selectedHomeCategory)
+          ).slice(0, 6).map((pkg) => (
             <PackageCard
               key={pkg.id}
               pkg={pkg}

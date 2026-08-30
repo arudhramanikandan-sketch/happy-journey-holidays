@@ -11,12 +11,19 @@ import { ServicesPage } from './pages/ServicesPage';
 import { CustomTripPage } from './pages/CustomTripPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
+import { AdminPortal } from './pages/admin/AdminPortal';
 
 export default function App() {
-  // Read initial route from URL path or fallback to '/'
+  // Read initial route from URL path or hash fallback (e.g. /admin or #admin)
   const getInitialRoute = (): PageRoute => {
     if (typeof window === 'undefined') return '/';
     const path = window.location.pathname;
+    const hash = window.location.hash.replace('#', '');
+    
+    if (path === '/admin' || hash === 'admin' || hash === '/admin') {
+      return '/admin';
+    }
+
     const validRoutes: PageRoute[] = [
       '/',
       '/international-holidays',
@@ -24,7 +31,8 @@ export default function App() {
       '/services',
       '/custom-trip',
       '/about',
-      '/contact'
+      '/contact',
+      '/admin'
     ];
     return validRoutes.includes(path as PageRoute) ? (path as PageRoute) : '/';
   };
@@ -35,13 +43,17 @@ export default function App() {
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [quoteModalInitialItem, setQuoteModalInitialItem] = useState<string>('');
 
-  // Handle browser back/forward buttons
+  // Handle browser back/forward buttons and hash navigation
   useEffect(() => {
     const handlePopState = () => {
       setCurrentRoute(getInitialRoute());
     };
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
   }, []);
 
   // Update URL and document title on route change
@@ -55,6 +67,9 @@ export default function App() {
     // Dynamic SEO title based on page
     let pageTitle = 'Happy Journey Holidays | Best Travel Agency in Coimbatore';
     switch (route) {
+      case '/admin':
+        pageTitle = 'Private Administrator Portal | Happy Journey Holidays';
+        break;
       case '/international-holidays':
         pageTitle = 'International Holiday Packages | Singapore, Malaysia, Dubai, Bali, Europe | Happy Journey Holidays Coimbatore';
         break;
@@ -84,7 +99,12 @@ export default function App() {
     setQuoteModalOpen(true);
   };
 
-  // Determine current active page component
+  // If currently navigating the private admin portal, render dedicated Admin Portal
+  if (currentRoute === '/admin') {
+    return <AdminPortal onNavigateHome={() => navigateTo('/')} />;
+  }
+
+  // Determine current active public page component
   const renderCurrentPage = () => {
     switch (currentRoute) {
       case '/':

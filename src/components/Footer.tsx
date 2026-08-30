@@ -59,8 +59,8 @@ export const Footer: React.FC<FooterProps> = ({ onRouteChange, onOpenQuoteModal 
               </div>
               <div className="flex items-center gap-2.5 text-slate-300">
                 <Phone size={15} className="text-[#F27D26] flex-shrink-0" />
-                <a href={`tel:${COMPANY_PHONE}`} className="hover:text-[#F27D26] transition">
-                  {COMPANY_PHONE_INTL} / {COMPANY_PHONE}
+                <a href={`tel:+91${COMPANY_PHONE}`} className="hover:text-[#F27D26] transition">
+                  {COMPANY_PHONE_INTL}
                 </a>
               </div>
               <div className="flex items-center gap-2.5 text-slate-300">
@@ -154,11 +154,11 @@ export const Footer: React.FC<FooterProps> = ({ onRouteChange, onOpenQuoteModal 
               </a>
 
               <a
-                href={`tel:${COMPANY_PHONE}`}
+                href={`tel:+91${COMPANY_PHONE}`}
                 className="inline-flex items-center justify-center gap-2 bg-[#001f3f] hover:bg-[#002b54] text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition border border-[#00386e]"
               >
                 <Phone size={14} className="text-[#F27D26]" />
-                <span>Call +91 {COMPANY_PHONE}</span>
+                <span>Call Us</span>
               </a>
             </div>
 

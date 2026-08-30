@@ -1,0 +1,114 @@
+<svg width="600" height="600" viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Sun Gradient -->
+    <linearGradient id="sunGradient" x1="200" y1="50" x2="400" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#FFA000" />
+      <stop offset="45%" stopColor="#FF7A00" />
+      <stop offset="100%" stopColor="#F05000" />
+    </linearGradient>
+
+    <!-- Globe / Lower Sphere Gradient -->
+    <linearGradient id="globeGradient" x1="180" y1="180" x2="420" y2="380" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#0066D6" />
+      <stop offset="50%" stopColor="#003E9E" />
+      <stop offset="100%" stopColor="#001F5C" />
+    </linearGradient>
+
+    <!-- Airplane Gradient -->
+    <linearGradient id="planeGradient" x1="320" y1="120" x2="480" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#0080FF" />
+      <stop offset="100%" stopColor="#004DA8" />
+    </linearGradient>
+
+    <!-- Wave Cyan Accent -->
+    <linearGradient id="waveGradient" x1="180" y1="200" x2="350" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#00A2FF" />
+      <stop offset="100%" stopColor="#005BBA" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background is transparent -->
+
+  <!-- Top Sun Circle -->
+  <circle cx="300" cy="170" r="105" fill="url(#sunGradient)" />
+
+  <!-- Sun Highlight Edge -->
+  <path d="M220 150 C230 90, 300 70, 375 105 C390 140, 380 180, 360 200 C330 160, 270 145, 220 150 Z" fill="#FFC107" opacity="0.4" />
+
+  <!-- Left Coconut Palm Tree (White) -->
+  <g fill="#FFFFFF">
+    <!-- Trunk -->
+    <path d="M245 210 Q240 150 252 110 Q256 110 252 150 Q248 210 245 210 Z" />
+    <!-- Fronds -->
+    <path d="M252 110 Q215 95 200 115 Q222 105 252 110 Z" />
+    <path d="M252 110 Q228 75 245 60 Q250 82 252 110 Z" />
+    <path d="M252 110 Q272 75 290 90 Q270 94 252 110 Z" />
+    <path d="M252 110 Q290 105 295 130 Q275 118 252 110 Z" />
+    <path d="M252 110 Q235 118 220 135 Q232 118 252 110 Z" />
+  </g>
+
+  <!-- Right Smaller Palm Tree (White) -->
+  <g fill="#FFFFFF">
+    <!-- Trunk -->
+    <path d="M292 205 Q288 165 298 135 Q302 135 298 165 Q294 205 292 205 Z" />
+    <!-- Fronds -->
+    <path d="M298 135 Q272 122 265 138 Q278 130 298 135 Z" />
+    <path d="M298 135 Q280 108 294 98 Q296 116 298 135 Z" />
+    <path d="M298 135 Q314 108 328 120 Q312 124 298 135 Z" />
+    <path d="M298 135 Q325 132 328 152 Q314 142 298 135 Z" />
+  </g>
+
+  <!-- Lower Globe / Ocean Body (Deep Blue) -->
+  <path d="M195 210 C195 290 250 345 315 345 C370 345 410 310 425 265 C395 295 350 310 300 305 C235 295 205 250 195 210 Z" fill="url(#globeGradient)" />
+  <path d="M198 215 C208 280 255 332 315 332 C378 332 428 280 428 215 C392 265 330 288 265 268 C230 255 208 234 198 215 Z" fill="url(#globeGradient)" />
+
+  <!-- Cyan Wave / Leaf Feature -->
+  <path d="M195 218 C235 195 310 200 375 255 C310 288 235 272 195 218 Z" fill="url(#waveGradient)" />
+
+  <!-- Orange Swoosh Curve (Bottom Orbit) -->
+  <path d="M178 248 C165 282 178 316 212 334 C255 355 330 348 405 288 C342 330 268 334 224 312 C196 298 184 274 188 248 Z" fill="#FF7A00" />
+  
+  <!-- Blue Wrap Trail -->
+  <path d="M188 248 C200 182 260 140 338 138 C278 150 225 188 210 245 C198 294 240 324 296 328 C240 320 188 295 188 248 Z" fill="#004DA8" opacity="0.85" />
+
+  <!-- Ascending Flight Trail Track -->
+  <path d="M210 292 C252 296 325 266 395 198 L385 190 C315 255 252 284 210 292 Z" fill="#FFFFFF" opacity="0.95" />
+
+  <!-- Jet Airplane (Ascending Diagonal) -->
+  <g>
+    <!-- Plane Body & Wings -->
+    <path d="M365 212 L448 132 C458 123 468 128 468 138 C468 144 460 152 448 162 L412 198 L425 248 L405 260 L386 218 L352 244 L350 265 L338 272 L334 248 L310 236 L316 222 L340 230 L365 212 Z" fill="url(#planeGradient)" />
+    <!-- Wing Top Highlight -->
+    <path d="M412 198 L455 156 C462 150 464 144 460 140 L382 190 L412 198 Z" fill="#38B6FF" />
+    <!-- Opposite Wing shadow -->
+    <path d="M390 182 L400 138 L416 134 L408 170 Z" fill="#003E9E" />
+  </g>
+
+  <!-- Typography: HAPPY -->
+  <g fill="#0050A0">
+    <text x="300" y="420" font-family="'Inter', 'Montserrat', 'Arial Black', sans-serif" font-weight="900" font-size="64" text-anchor="middle" letter-spacing="4">
+      HAPPY
+    </text>
+  </g>
+
+  <!-- Typography: JOURNEY (Orange with Suitcase O) -->
+  <g fill="#FF7A00">
+    <text x="300" y="490" font-family="'Inter', 'Montserrat', 'Arial Black', sans-serif" font-weight="900" font-size="64" text-anchor="middle" letter-spacing="3">
+      JOURNEY
+    </text>
+  </g>
+
+  <!-- Divider & Subtitle: — HOLIDAYS — -->
+  <g stroke="#003366" stroke-width="3">
+    <line x1="90" y1="522" x2="185" y2="522" />
+    <line x1="415" y1="522" x2="510" y2="522" />
+  </g>
+  <text x="300" y="529" font-family="'Montserrat', 'Arial', sans-serif" font-weight="800" font-size="24" fill="#003366" text-anchor="middle" letter-spacing="8">
+    HOLIDAYS
+  </text>
+
+  <!-- Tagline: TRAVEL THE WORLD WITH US -->
+  <text x="300" y="562" font-family="'Montserrat', 'Arial', sans-serif" font-weight="700" font-size="16" fill="#003366" text-anchor="middle" letter-spacing="4">
+    TRAVEL THE WORLD WITH US
+  </text>
+</svg>

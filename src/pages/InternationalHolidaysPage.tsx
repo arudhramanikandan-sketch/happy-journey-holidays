@@ -12,9 +12,10 @@ import {
   FileCheck,
   Plane
 } from 'lucide-react';
-import { PageRoute, Destination } from '../types';
-import { INTERNATIONAL_DESTINATIONS, FEATURED_PACKAGES } from '../data/travelData';
+import { PageRoute, Destination, HolidayPackage } from '../types';
+import { INTERNATIONAL_DESTINATIONS } from '../data/travelData';
 import { createDestinationWhatsAppLink, createWhatsAppLink } from '../utils/whatsapp';
+import { usePublicPackages } from '../utils/usePackages';
 
 interface InternationalHolidaysPageProps {
   onNavigate: (route: PageRoute) => void;
@@ -26,6 +27,7 @@ export const InternationalHolidaysPage: React.FC<InternationalHolidaysPageProps>
   onOpenQuoteModal
 }) => {
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const { packages: dynamicPackages } = usePublicPackages('international');
 
   const filterTabs = [
     { id: 'all', label: 'All Destinations' },
@@ -94,8 +96,9 @@ export const InternationalHolidaysPage: React.FC<InternationalHolidaysPageProps>
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         {filteredDestinations.map((dest, index) => {
           // Find packages matching this destination
-          const relatedPackages = FEATURED_PACKAGES.filter(
-            pkg => pkg.destination.toLowerCase().includes(dest.name.toLowerCase().split(' ')[0])
+          const relatedPackages = dynamicPackages.filter(
+            pkg => pkg.destination.toLowerCase().includes(dest.name.toLowerCase().split(' ')[0]) ||
+                   dest.name.toLowerCase().includes(pkg.destination.toLowerCase().split(' ')[0])
           );
 
           return (

@@ -12,9 +12,10 @@ import {
   ShieldCheck,
   Building
 } from 'lucide-react';
-import { PageRoute, Destination } from '../types';
-import { DOMESTIC_DESTINATIONS, FEATURED_PACKAGES } from '../data/travelData';
+import { PageRoute, Destination, HolidayPackage } from '../types';
+import { DOMESTIC_DESTINATIONS } from '../data/travelData';
 import { createDestinationWhatsAppLink } from '../utils/whatsapp';
+import { usePublicPackages } from '../utils/usePackages';
 
 interface DomesticHolidaysPageProps {
   onNavigate: (route: PageRoute) => void;
@@ -26,6 +27,7 @@ export const DomesticHolidaysPage: React.FC<DomesticHolidaysPageProps> = ({
   onOpenQuoteModal
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'south' | 'north' | 'islands'>('all');
+  const { packages: dynamicPackages } = usePublicPackages('domestic');
 
   const filterTabs = [
     { id: 'all', label: 'All Domestic Holidays' },
@@ -92,8 +94,9 @@ export const DomesticHolidaysPage: React.FC<DomesticHolidaysPageProps> = ({
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {filteredDestinations.map((dest) => {
-            const relatedPackages = FEATURED_PACKAGES.filter(
-              pkg => pkg.destination.toLowerCase().includes(dest.name.toLowerCase().split(' ')[0])
+            const relatedPackages = dynamicPackages.filter(
+              pkg => pkg.destination.toLowerCase().includes(dest.name.toLowerCase().split(' ')[0]) ||
+                     dest.name.toLowerCase().includes(pkg.destination.toLowerCase().split(' ')[0])
             );
 
             return (
