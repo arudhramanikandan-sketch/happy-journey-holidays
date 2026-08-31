@@ -28,12 +28,21 @@ import {
   Loader2
 } from 'lucide-react';
 
-export type EnquiryStatus = 'New' | 'Contacted' | 'In Progress' | 'Completed' | 'Cancelled';
+export type EnquiryStatus = 
+  | 'NEW' 
+  | 'CONTACTED' 
+  | 'QUOTE SENT' 
+  | 'CONFIRMED' 
+  | 'LOST / CANCELLED' 
+  | 'CLOSED';
+
 export type EnquiryCategory = 'Domestic' | 'International' | 'Custom' | 'Service' | 'General';
+export type EnquirySource = 'Website Enquiry' | 'WhatsApp Direct';
 
 export interface AdminEnquiry {
   id: string;
   enquiryReference: string;
+  source?: EnquirySource;
   date: string;
   time: string;
   customerName: string;
@@ -50,6 +59,7 @@ export interface AdminEnquiry {
   budget?: string;
   tripType?: string;
   departureCity?: string;
+  specialRequirements?: string;
   customerMessage?: string;
   status: EnquiryStatus;
   createdAt: string;
@@ -63,9 +73,15 @@ interface StatusCounts {
   total: number;
   new: number;
   contacted: number;
-  inProgress: number;
-  completed: number;
-  cancelled: number;
+  quoteSent: number;
+  confirmed: number;
+  lostCancelled: number;
+  closed: number;
+}
+
+interface SourceCounts {
+  website: number;
+  whatsapp: number;
 }
 
 interface GoogleSheetsConfig {
@@ -84,9 +100,14 @@ export const AdminEnquiriesManager: React.FC = () => {
     total: 0,
     new: 0,
     contacted: 0,
-    inProgress: 0,
-    completed: 0,
-    cancelled: 0
+    quoteSent: 0,
+    confirmed: 0,
+    lostCancelled: 0,
+    closed: 0
+  });
+  const [sourceCounts, setSourceCounts] = useState<SourceCounts>({
+    website: 0,
+    whatsapp: 0
   });
   const [googleSheetsConfig, setGoogleSheetsConfig] = useState<GoogleSheetsConfig | null>(null);
 
@@ -94,6 +115,8 @@ export const AdminEnquiriesManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedSource, setSelectedSource] = useState<string>('All');
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string>('All');
 
   // Selected enquiry for details modal
   const [activeEnquiry, setActiveEnquiry] = useState<AdminEnquiry | null>(null);
@@ -104,7 +127,7 @@ export const AdminEnquiriesManager: React.FC = () => {
 
   useEffect(() => {
     fetchEnquiries();
-  }, [selectedStatus, selectedCategory]);
+  }, [selectedStatus, selectedCategory, selectedSource, selectedDateFilter]);
 
   const fetchEnquiries = async () => {
     setLoading(true);
@@ -114,8 +137,14 @@ export const AdminEnquiriesManager: React.FC = () => {
       if (searchTerm) queryParams.set('search', searchTerm);
       if (selectedStatus !== 'All') queryParams.set('status', selectedStatus);
       if (selectedCategory !== 'All') queryParams.set('category', selectedCategory);
+      if (selectedSource !== 'All') queryParams.set('source', selectedSource);
+      if (selectedDateFilter !== 'All') queryParams.set('dateFilter', selectedDateFilter);
 
-      const res = await fetch(`/api/admin/enquiries?${queryParams.toString()}`);
+      const token = localStorage.getItem('admin_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`/api/admin/enquiries?${queryParams.toString()}`, { headers });
       if (!res.ok) {
         throw new Error('Failed to fetch customer enquiries.');
       }
@@ -123,6 +152,9 @@ export const AdminEnquiriesManager: React.FC = () => {
       setEnquiries(data.enquiries || []);
       if (data.statusCounts) {
         setStatusCounts(data.statusCounts);
+      }
+      if (data.sourceCounts) {
+        setSourceCounts(data.sourceCounts);
       }
       if (data.googleSheetsConfig) {
         setGoogleSheetsConfig(data.googleSheetsConfig);
@@ -142,9 +174,13 @@ export const AdminEnquiriesManager: React.FC = () => {
   const handleStatusChange = async (id: string, newStatus: EnquiryStatus) => {
     setIsUpdatingStatus(id);
     try {
+      const token = localStorage.getItem('admin_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch(`/api/admin/enquiries/${id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ status: newStatus })
       });
 
@@ -177,8 +213,13 @@ export const AdminEnquiriesManager: React.FC = () => {
   const handleResyncGoogleSheet = async (id: string) => {
     setIsResyncing(id);
     try {
+      const token = localStorage.getItem('admin_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch(`/api/admin/enquiries/${id}/resync`, {
-        method: 'POST'
+        method: 'POST',
+        headers
       });
       const data = await res.json();
       if (data.enquiry) {
@@ -198,8 +239,13 @@ export const AdminEnquiriesManager: React.FC = () => {
 
   const handleDeleteEnquiry = async (id: string) => {
     try {
+      const token = localStorage.getItem('admin_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch(`/api/admin/enquiries/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       });
       if (!res.ok) throw new Error('Failed to delete enquiry record.');
 
@@ -222,6 +268,7 @@ export const AdminEnquiriesManager: React.FC = () => {
     // Headers matching the Google Sheets specification
     const headers = [
       'Enquiry Reference',
+      'Source',
       'Date',
       'Time',
       'Customer Name',
@@ -238,6 +285,7 @@ export const AdminEnquiriesManager: React.FC = () => {
 
     const rows = enquiries.map(e => [
       `"${e.enquiryReference}"`,
+      `"${e.source || 'Website Enquiry'}"`,
       `"${e.date}"`,
       `"${e.time}"`,
       `"${e.customerName.replace(/"/g, '""')}"`,
@@ -264,15 +312,17 @@ export const AdminEnquiriesManager: React.FC = () => {
 
   const getStatusBadge = (status: EnquiryStatus) => {
     switch (status) {
-      case 'New':
+      case 'NEW':
         return 'bg-amber-950/80 text-amber-300 border-amber-800';
-      case 'Contacted':
+      case 'CONTACTED':
         return 'bg-sky-950/80 text-sky-300 border-sky-800';
-      case 'In Progress':
+      case 'QUOTE SENT':
         return 'bg-blue-950/80 text-[#38B6FF] border-blue-800';
-      case 'Completed':
+      case 'CONFIRMED':
         return 'bg-emerald-950/80 text-emerald-300 border-emerald-800';
-      case 'Cancelled':
+      case 'LOST / CANCELLED':
+        return 'bg-rose-950/80 text-rose-300 border-rose-800';
+      case 'CLOSED':
         return 'bg-slate-800 text-slate-400 border-slate-700';
       default:
         return 'bg-slate-800 text-slate-300 border-slate-700';
@@ -307,16 +357,16 @@ export const AdminEnquiriesManager: React.FC = () => {
               </h3>
               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Google Sheets Live Sync
+                Live Enquiries Database
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Real-time synchronization for quotes, custom itineraries, and WhatsApp booking leads.
+              Manage submitted tour requests, quotes, status tracking, and direct WhatsApp follow-ups.
             </p>
           </div>
         </div>
 
-        {/* Google Sheets Config Pill */}
+        {/* Action Buttons */}
         <div className="flex items-center gap-2.5">
           <button
             onClick={fetchEnquiries}
@@ -353,90 +403,104 @@ export const AdminEnquiriesManager: React.FC = () => {
         </div>
       )}
 
-      {/* Status Counters Bar (Google Sheets Style Stats) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* Status Counters Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
         <button
           onClick={() => setSelectedStatus('All')}
-          className={`p-3.5 rounded-2xl border text-left transition ${
+          className={`p-3 rounded-2xl border text-left transition ${
             selectedStatus === 'All'
               ? 'bg-[#002447] border-[#38B6FF] text-white shadow-md'
               : 'bg-[#001329] border-[#002B54] text-slate-300 hover:bg-[#001c38]'
           }`}
         >
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-            Total Enquiries
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+            Total
           </span>
-          <span className="text-2xl font-black text-white">{statusCounts.total}</span>
+          <span className="text-xl font-black text-white">{statusCounts.total}</span>
         </button>
 
         <button
-          onClick={() => setSelectedStatus('New')}
-          className={`p-3.5 rounded-2xl border text-left transition ${
-            selectedStatus === 'New'
+          onClick={() => setSelectedStatus('NEW')}
+          className={`p-3 rounded-2xl border text-left transition ${
+            selectedStatus === 'NEW'
               ? 'bg-amber-950/80 border-amber-500 text-white shadow-md'
               : 'bg-[#001329] border-[#002B54] text-slate-300 hover:bg-[#001c38]'
           }`}
         >
-          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 block mb-1">
-            🟡 New / Unread
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 block mb-0.5">
+            🟡 New
           </span>
-          <span className="text-2xl font-black text-amber-300">{statusCounts.new}</span>
+          <span className="text-xl font-black text-amber-300">{statusCounts.new}</span>
         </button>
 
         <button
-          onClick={() => setSelectedStatus('Contacted')}
-          className={`p-3.5 rounded-2xl border text-left transition ${
-            selectedStatus === 'Contacted'
+          onClick={() => setSelectedStatus('CONTACTED')}
+          className={`p-3 rounded-2xl border text-left transition ${
+            selectedStatus === 'CONTACTED'
               ? 'bg-sky-950/80 border-sky-500 text-white shadow-md'
               : 'bg-[#001329] border-[#002B54] text-slate-300 hover:bg-[#001c38]'
           }`}
         >
-          <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400 block mb-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400 block mb-0.5">
             🔵 Contacted
           </span>
-          <span className="text-2xl font-black text-sky-300">{statusCounts.contacted}</span>
+          <span className="text-xl font-black text-sky-300">{statusCounts.contacted}</span>
         </button>
 
         <button
-          onClick={() => setSelectedStatus('In Progress')}
-          className={`p-3.5 rounded-2xl border text-left transition ${
-            selectedStatus === 'In Progress'
+          onClick={() => setSelectedStatus('QUOTE SENT')}
+          className={`p-3 rounded-2xl border text-left transition ${
+            selectedStatus === 'QUOTE SENT'
               ? 'bg-blue-950/80 border-blue-500 text-white shadow-md'
               : 'bg-[#001329] border-[#002B54] text-slate-300 hover:bg-[#001c38]'
           }`}
         >
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#38B6FF] block mb-1">
-            🟣 In Progress
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#38B6FF] block mb-0.5">
+            🟣 Quote Sent
           </span>
-          <span className="text-2xl font-black text-[#38B6FF]">{statusCounts.inProgress}</span>
+          <span className="text-xl font-black text-[#38B6FF]">{statusCounts.quoteSent}</span>
         </button>
 
         <button
-          onClick={() => setSelectedStatus('Completed')}
-          className={`p-3.5 rounded-2xl border text-left transition ${
-            selectedStatus === 'Completed'
+          onClick={() => setSelectedStatus('CONFIRMED')}
+          className={`p-3 rounded-2xl border text-left transition ${
+            selectedStatus === 'CONFIRMED'
               ? 'bg-emerald-950/80 border-emerald-500 text-white shadow-md'
               : 'bg-[#001329] border-[#002B54] text-slate-300 hover:bg-[#001c38]'
           }`}
         >
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 block mb-1">
-            🟢 Completed
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block mb-0.5">
+            🟢 Confirmed
           </span>
-          <span className="text-2xl font-black text-emerald-300">{statusCounts.completed}</span>
+          <span className="text-xl font-black text-emerald-300">{statusCounts.confirmed}</span>
         </button>
 
         <button
-          onClick={() => setSelectedStatus('Cancelled')}
-          className={`p-3.5 rounded-2xl border text-left transition ${
-            selectedStatus === 'Cancelled'
+          onClick={() => setSelectedStatus('LOST / CANCELLED')}
+          className={`p-3 rounded-2xl border text-left transition ${
+            selectedStatus === 'LOST / CANCELLED'
+              ? 'bg-rose-950/80 border-rose-500 text-white shadow-md'
+              : 'bg-[#001329] border-[#002B54] text-slate-300 hover:bg-[#001c38]'
+          }`}
+        >
+          <span className="text-[10px] font-bold uppercase tracking-wider text-rose-400 block mb-0.5">
+            🔴 Lost / Cancelled
+          </span>
+          <span className="text-xl font-black text-rose-300">{statusCounts.lostCancelled}</span>
+        </button>
+
+        <button
+          onClick={() => setSelectedStatus('CLOSED')}
+          className={`p-3 rounded-2xl border text-left transition ${
+            selectedStatus === 'CLOSED'
               ? 'bg-slate-900 border-slate-500 text-white shadow-md'
               : 'bg-[#001329] border-[#002B54] text-slate-300 hover:bg-[#001c38]'
           }`}
         >
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-            ⚪ Cancelled
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+            ⚪ Closed
           </span>
-          <span className="text-2xl font-black text-slate-400">{statusCounts.cancelled}</span>
+          <span className="text-xl font-black text-slate-400">{statusCounts.closed}</span>
         </button>
       </div>
 
@@ -449,7 +513,7 @@ export const AdminEnquiriesManager: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by customer name, phone number, or enquiry reference (e.g. HJH-829104)..."
+            placeholder="Search by customer name, phone, ref ID (e.g. HJH-829104), destination, or package..."
             className="w-full pl-10 pr-24 py-2.5 bg-[#000e1f] text-white border border-[#002B54] rounded-xl text-xs focus:ring-2 focus:ring-[#F27D26] focus:border-transparent outline-none"
           />
           <button
@@ -460,10 +524,58 @@ export const AdminEnquiriesManager: React.FC = () => {
           </button>
         </form>
 
-        {/* Category Filter */}
-        <div className="flex items-center gap-2">
+        {/* Status, Category, Source & Date Filters */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Source Filter */}
+          <div className="flex items-center gap-1.5 bg-[#000e1f] border border-[#002B54] px-3 py-2 rounded-xl text-xs text-slate-300">
+            <span className="text-slate-400">Source:</span>
+            <select
+              value={selectedSource}
+              onChange={(e) => setSelectedSource(e.target.value)}
+              className="bg-transparent text-white font-semibold outline-none cursor-pointer"
+            >
+              <option value="All" className="bg-[#001329]">All Sources ({sourceCounts.website + sourceCounts.whatsapp})</option>
+              <option value="Website Enquiry" className="bg-[#001329]">Website Enquiry ({sourceCounts.website})</option>
+              <option value="WhatsApp Direct" className="bg-[#001329]">WhatsApp Direct ({sourceCounts.whatsapp})</option>
+            </select>
+          </div>
+
+          {/* Date Filter */}
+          <div className="flex items-center gap-1.5 bg-[#000e1f] border border-[#002B54] px-3 py-2 rounded-xl text-xs text-slate-300">
+            <Calendar size={13} className="text-slate-400" />
+            <span className="text-slate-400">Date:</span>
+            <select
+              value={selectedDateFilter}
+              onChange={(e) => setSelectedDateFilter(e.target.value)}
+              className="bg-transparent text-white font-semibold outline-none cursor-pointer"
+            >
+              <option value="All" className="bg-[#001329]">All Time</option>
+              <option value="Today" className="bg-[#001329]">Today</option>
+              <option value="Yesterday" className="bg-[#001329]">Yesterday</option>
+              <option value="Last 7 Days" className="bg-[#001329]">Last 7 Days</option>
+              <option value="This Month" className="bg-[#001329]">This Month</option>
+            </select>
+          </div>
+
           <div className="flex items-center gap-1.5 bg-[#000e1f] border border-[#002B54] px-3 py-2 rounded-xl text-xs text-slate-300">
             <Filter size={13} className="text-slate-400" />
+            <span className="text-slate-400">Status:</span>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="bg-transparent text-white font-semibold outline-none cursor-pointer"
+            >
+              <option value="All" className="bg-[#001329]">All Statuses</option>
+              <option value="NEW" className="bg-[#001329]">New</option>
+              <option value="CONTACTED" className="bg-[#001329]">Contacted</option>
+              <option value="QUOTE SENT" className="bg-[#001329]">Quote Sent</option>
+              <option value="CONFIRMED" className="bg-[#001329]">Confirmed</option>
+              <option value="LOST / CANCELLED" className="bg-[#001329]">Lost / Cancelled</option>
+              <option value="CLOSED" className="bg-[#001329]">Closed</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-[#000e1f] border border-[#002B54] px-3 py-2 rounded-xl text-xs text-slate-300">
             <span className="text-slate-400">Category:</span>
             <select
               value={selectedCategory}
@@ -478,12 +590,14 @@ export const AdminEnquiriesManager: React.FC = () => {
             </select>
           </div>
 
-          {(searchTerm || selectedStatus !== 'All' || selectedCategory !== 'All') && (
+          {(searchTerm || selectedStatus !== 'All' || selectedCategory !== 'All' || selectedSource !== 'All' || selectedDateFilter !== 'All') && (
             <button
               onClick={() => {
                 setSearchTerm('');
                 setSelectedStatus('All');
                 setSelectedCategory('All');
+                setSelectedSource('All');
+                setSelectedDateFilter('All');
               }}
               className="px-3 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-[#000e1f] border border-[#002B54] hover:bg-[#002244] transition"
             >
@@ -493,19 +607,20 @@ export const AdminEnquiriesManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Google Sheets Style Enquiries Data Table */}
+      {/* Main Enquiries Data Table */}
       <div className="bg-[#001329] border border-[#002B54] rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#000a17] text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-[#002B54]">
-                <th className="py-3 px-4">Enquiry Ref</th>
+                <th className="py-3 px-4">Ref ID</th>
+                <th className="py-3 px-4">Source</th>
                 <th className="py-3 px-4">Date & Time</th>
                 <th className="py-3 px-4">Customer</th>
                 <th className="py-3 px-4">Phone / WhatsApp</th>
-                <th className="py-3 px-4">Destination / Tour</th>
-                <th className="py-3 px-4">Category</th>
+                <th className="py-3 px-4">Destination / Package</th>
                 <th className="py-3 px-4">Travel Date</th>
+                <th className="py-3 px-4">Travellers</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -513,20 +628,20 @@ export const AdminEnquiriesManager: React.FC = () => {
             <tbody className="divide-y divide-[#002B54]/60 text-xs">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400">
+                  <td colSpan={10} className="py-12 text-center text-slate-400">
                     <Loader2 size={24} className="animate-spin mx-auto text-[#F27D26] mb-2" />
-                    <p>Loading enquiries from Google Sheets database...</p>
+                    <p>Loading enquiries from database...</p>
                   </td>
                 </tr>
               ) : enquiries.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400 space-y-2">
+                  <td colSpan={10} className="py-12 text-center text-slate-400 space-y-2">
                     <Inbox size={32} className="mx-auto text-slate-600" />
                     <p className="font-semibold text-sm">No enquiries found</p>
                     <p className="text-[11px] text-slate-500">
-                      {searchTerm || selectedStatus !== 'All'
+                      {searchTerm || selectedStatus !== 'All' || selectedSource !== 'All'
                         ? 'Try clearing your search terms or filters.'
-                        : 'Customer enquiries submitted from your website will appear here in real-time.'}
+                        : 'Customer enquiries submitted via the website or WhatsApp will appear here in real time.'}
                     </p>
                   </td>
                 </tr>
@@ -538,6 +653,7 @@ export const AdminEnquiriesManager: React.FC = () => {
                     `Hello ${enq.customerName}, Happy Journey Holidays Coimbatore here! Regarding your enquiry ${enq.enquiryReference} for ${enq.destination || 'your trip'} — we are ready with your customized quotation.`
                   );
                   const waLink = `https://wa.me/${waPhone}?text=${waText}`;
+                  const isWhatsApp = enq.source === 'WhatsApp Direct';
 
                   return (
                     <tr
@@ -549,6 +665,27 @@ export const AdminEnquiriesManager: React.FC = () => {
                       <td className="py-3.5 px-4">
                         <span className="font-mono font-bold text-[#F27D26] group-hover:underline">
                           {enq.enquiryReference}
+                        </span>
+                      </td>
+
+                      {/* Source */}
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                          isWhatsApp
+                            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
+                            : 'bg-[#002447] text-[#38B6FF] border-[#003d75]'
+                        }`}>
+                          {isWhatsApp ? (
+                            <>
+                              <MessageSquare size={11} className="text-emerald-400" />
+                              <span>WhatsApp</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send size={11} className="text-[#38B6FF]" />
+                              <span>Website</span>
+                            </>
+                          )}
                         </span>
                       </td>
 
@@ -594,23 +731,15 @@ export const AdminEnquiriesManager: React.FC = () => {
                       </td>
 
                       {/* Destination / Package */}
-                      <td className="py-3.5 px-4 max-w-[180px]">
+                      <td className="py-3.5 px-4 max-w-[200px]">
                         <div className="font-medium text-slate-200 truncate" title={enq.destination || enq.packageName}>
                           {enq.destination || enq.packageName || 'Trip Enquiry'}
                         </div>
-                        {enq.numberOfTravellers && (
-                          <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                            <Users size={10} />
-                            <span>{enq.numberOfTravellers}</span>
+                        {enq.packageName && enq.packageName !== enq.destination && (
+                          <div className="text-[10px] text-slate-400 truncate" title={enq.packageName}>
+                            Pkg: {enq.packageName}
                           </div>
                         )}
-                      </td>
-
-                      {/* Category */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getCategoryBadge(enq.category)}`}>
-                          {enq.category}
-                        </span>
                       </td>
 
                       {/* Travel Date */}
@@ -619,6 +748,18 @@ export const AdminEnquiriesManager: React.FC = () => {
                           <span className="font-mono text-slate-200">{enq.travelDate}</span>
                         ) : (
                           <span className="text-slate-500 italic text-[11px]">Flexible</span>
+                        )}
+                      </td>
+
+                      {/* Travellers */}
+                      <td className="py-3.5 px-4 whitespace-nowrap text-slate-300">
+                        {enq.adults !== undefined || enq.children !== undefined ? (
+                          <span>
+                            {enq.adults || 1} Adult{(enq.adults || 1) > 1 ? 's' : ''}
+                            {enq.children ? `, ${enq.children} Child${enq.children > 1 ? 'ren' : ''}` : ''}
+                          </span>
+                        ) : (
+                          <span>{enq.numberOfTravellers || '2 Adults'}</span>
                         )}
                       </td>
 
@@ -631,11 +772,12 @@ export const AdminEnquiriesManager: React.FC = () => {
                             onChange={(e) => handleStatusChange(enq.id, e.target.value as EnquiryStatus)}
                             className={`px-2.5 py-1 rounded-full text-[11px] font-bold border outline-none cursor-pointer transition ${getStatusBadge(enq.status)}`}
                           >
-                            <option value="New" className="bg-[#001329] text-amber-300">New</option>
-                            <option value="Contacted" className="bg-[#001329] text-sky-300">Contacted</option>
-                            <option value="In Progress" className="bg-[#001329] text-[#38B6FF]">In Progress</option>
-                            <option value="Completed" className="bg-[#001329] text-emerald-300">Completed</option>
-                            <option value="Cancelled" className="bg-[#001329] text-slate-400">Cancelled</option>
+                            <option value="NEW" className="bg-[#001329] text-amber-300">NEW</option>
+                            <option value="CONTACTED" className="bg-[#001329] text-sky-300">CONTACTED</option>
+                            <option value="QUOTE SENT" className="bg-[#001329] text-[#38B6FF]">QUOTE SENT</option>
+                            <option value="CONFIRMED" className="bg-[#001329] text-emerald-300">CONFIRMED</option>
+                            <option value="LOST / CANCELLED" className="bg-[#001329] text-rose-300">LOST / CANCELLED</option>
+                            <option value="CLOSED" className="bg-[#001329] text-slate-400">CLOSED</option>
                           </select>
                         </div>
                       </td>
@@ -674,7 +816,7 @@ export const AdminEnquiriesManager: React.FC = () => {
             Showing <strong className="text-white">{enquiries.length}</strong> of <strong className="text-white">{statusCounts.total}</strong> customer enquiries
           </div>
           <div className="flex items-center gap-2">
-            <span>Google Sheet Columns: Reference • Date • Time • Name • Phone • Email • Destination • Package • Category • Travel Date • Travellers • Notes • Status</span>
+            <span>Fields: Reference ID • Customer Name • Phone • Email • Destination • Package • Travel Date • Travellers • Budget • Special Requirements • Status</span>
           </div>
         </div>
       </div>
@@ -699,12 +841,19 @@ export const AdminEnquiriesManager: React.FC = () => {
                     <span className="font-mono font-black text-lg text-[#F27D26]">
                       {activeEnquiry.enquiryReference}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getStatusBadge(activeEnquiry.status)}`}>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusBadge(activeEnquiry.status)}`}>
                       {activeEnquiry.status}
+                    </span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                      activeEnquiry.source === 'WhatsApp Direct'
+                        ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
+                        : 'bg-[#002447] text-[#38B6FF] border-[#003d75]'
+                    }`}>
+                      {activeEnquiry.source || 'Website Enquiry'}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400">
-                    Received on {activeEnquiry.date} at {activeEnquiry.time}
+                    Submitted on {activeEnquiry.date} at {activeEnquiry.time}
                   </p>
                 </div>
               </div>
@@ -728,11 +877,12 @@ export const AdminEnquiriesManager: React.FC = () => {
                     onChange={(e) => handleStatusChange(activeEnquiry.id, e.target.value as EnquiryStatus)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer ${getStatusBadge(activeEnquiry.status)}`}
                   >
-                    <option value="New" className="bg-[#001329] text-amber-300">New</option>
-                    <option value="Contacted" className="bg-[#001329] text-sky-300">Contacted</option>
-                    <option value="In Progress" className="bg-[#001329] text-[#38B6FF]">In Progress</option>
-                    <option value="Completed" className="bg-[#001329] text-emerald-300">Completed</option>
-                    <option value="Cancelled" className="bg-[#001329] text-slate-400">Cancelled</option>
+                    <option value="NEW" className="bg-[#001329] text-amber-300">NEW</option>
+                    <option value="CONTACTED" className="bg-[#001329] text-sky-300">CONTACTED</option>
+                    <option value="QUOTE SENT" className="bg-[#001329] text-[#38B6FF]">QUOTE SENT</option>
+                    <option value="CONFIRMED" className="bg-[#001329] text-emerald-300">CONFIRMED</option>
+                    <option value="LOST / CANCELLED" className="bg-[#001329] text-rose-300">LOST / CANCELLED</option>
+                    <option value="CLOSED" className="bg-[#001329] text-slate-400">CLOSED</option>
                   </select>
                 </div>
 
@@ -743,7 +893,7 @@ export const AdminEnquiriesManager: React.FC = () => {
                     className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#002244] text-[#38B6FF] border border-[#003e7e] text-xs font-bold hover:bg-[#003366] transition disabled:opacity-50"
                   >
                     <RefreshCw size={12} className={isResyncing === activeEnquiry.id ? 'animate-spin' : ''} />
-                    <span>Re-sync to Sheet</span>
+                    <span>Sync to Sheet</span>
                   </button>
                 </div>
               </div>
@@ -756,12 +906,12 @@ export const AdminEnquiriesManager: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <span className="text-xs text-slate-400 block">Full Name:</span>
+                    <span className="text-xs text-slate-400 block">Customer Name:</span>
                     <span className="text-base font-bold text-white">{activeEnquiry.customerName}</span>
                   </div>
 
                   <div>
-                    <span className="text-xs text-slate-400 block">Phone / WhatsApp:</span>
+                    <span className="text-xs text-slate-400 block">Phone Number / WhatsApp:</span>
                     <a href={`tel:${activeEnquiry.phoneNumber}`} className="text-base font-mono font-bold text-emerald-400 hover:underline">
                       {activeEnquiry.phoneNumber}
                     </a>
@@ -791,9 +941,16 @@ export const AdminEnquiriesManager: React.FC = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <span className="text-xs text-slate-400 block">Destination / Tour:</span>
+                    <span className="text-xs text-slate-400 block">Destination:</span>
                     <span className="text-base font-bold text-[#F27D26]">
-                      {activeEnquiry.destination || activeEnquiry.packageName || 'Custom Request'}
+                      {activeEnquiry.destination || 'Not Specified'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-slate-400 block">Package Name:</span>
+                    <span className="text-base font-bold text-white">
+                      {activeEnquiry.packageName || activeEnquiry.destination || 'Custom Tour'}
                     </span>
                   </div>
 
@@ -807,66 +964,56 @@ export const AdminEnquiriesManager: React.FC = () => {
                   <div>
                     <span className="text-xs text-slate-400 block">Travel Date:</span>
                     <span className="text-sm font-semibold text-white">
-                      {activeEnquiry.travelDate || 'Flexible Travel Date'}
+                      {activeEnquiry.travelDate || 'Flexible'}
                     </span>
                   </div>
 
                   <div>
-                    <span className="text-xs text-slate-400 block">Number of Travellers:</span>
+                    <span className="text-xs text-slate-400 block">Number of Adults:</span>
                     <span className="text-sm font-semibold text-white">
-                      {activeEnquiry.numberOfTravellers || '2 Adults'}
+                      {activeEnquiry.adults !== undefined ? activeEnquiry.adults : (activeEnquiry.numberOfTravellers || '2')}
                     </span>
                   </div>
 
-                  {activeEnquiry.budget && (
-                    <div>
-                      <span className="text-xs text-slate-400 block">Estimated Budget:</span>
-                      <span className="text-sm font-semibold text-amber-300">
-                        {activeEnquiry.budget}
-                      </span>
-                    </div>
-                  )}
+                  <div>
+                    <span className="text-xs text-slate-400 block">Number of Children:</span>
+                    <span className="text-sm font-semibold text-white">
+                      {activeEnquiry.children !== undefined ? activeEnquiry.children : '0'}
+                    </span>
+                  </div>
 
-                  {activeEnquiry.tripType && (
-                    <div>
-                      <span className="text-xs text-slate-400 block">Trip Style / Purpose:</span>
-                      <span className="text-sm font-semibold text-purple-300">
-                        {activeEnquiry.tripType}
-                      </span>
-                    </div>
-                  )}
+                  <div>
+                    <span className="text-xs text-slate-400 block">Trip Type / Style:</span>
+                    <span className="text-sm font-semibold text-purple-300">
+                      {activeEnquiry.tripType || 'Holiday Tour'}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-xs text-slate-400 block">Budget:</span>
+                    <span className="text-sm font-semibold text-amber-300">
+                      {activeEnquiry.budget || 'Standard'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Customer Notes & Message */}
-              {activeEnquiry.customerMessage && (
+              {/* Special Requirements & Customer Message */}
+              {(activeEnquiry.specialRequirements || activeEnquiry.customerMessage) && (
                 <div className="bg-[#000e1f] border border-[#002B54] rounded-2xl p-5 space-y-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Customer Message & Special Notes
+                    Special Requirements & Notes
                   </span>
                   <div className="p-3 bg-[#001329] border border-[#002B54] rounded-xl text-xs text-slate-200 leading-relaxed whitespace-pre-wrap font-sans">
-                    {activeEnquiry.customerMessage}
+                    {activeEnquiry.specialRequirements || activeEnquiry.customerMessage}
                   </div>
                 </div>
               )}
 
-              {/* Integration Sync Audit */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-3 bg-[#000a17] border border-[#002B54] rounded-xl flex items-center justify-between">
-                  <span className="text-slate-400">Google Sheet:</span>
-                  <span className="font-semibold text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 size={13} />
-                    <span>Row Appended</span>
-                  </span>
-                </div>
-
-                <div className="p-3 bg-[#000a17] border border-[#002B54] rounded-xl flex items-center justify-between">
-                  <span className="text-slate-400">Email Notification:</span>
-                  <span className="font-semibold text-[#38B6FF] flex items-center gap-1">
-                    <Mail size={13} />
-                    <span>happyjourneyholidayscbe@gmail.com</span>
-                  </span>
-                </div>
+              {/* Submission Date & Time Audit */}
+              <div className="p-3 bg-[#000a17] border border-[#002B54] rounded-xl text-xs flex items-center justify-between text-slate-400">
+                <span>Submitted Date & Time:</span>
+                <span className="font-semibold text-white font-mono">{activeEnquiry.date} at {activeEnquiry.time}</span>
               </div>
 
               {/* Direct Outreach Action Buttons */}
@@ -905,7 +1052,7 @@ export const AdminEnquiriesManager: React.FC = () => {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
+      {/* DELETE CONFIRMATION DIALOG */}
       {deleteConfirmId && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in"
@@ -918,22 +1065,22 @@ export const AdminEnquiriesManager: React.FC = () => {
             <div className="w-12 h-12 rounded-full bg-rose-950 text-rose-400 border border-rose-800 flex items-center justify-center mx-auto">
               <Trash2 size={24} />
             </div>
-            <h4 className="text-lg font-bold text-white">Delete Enquiry Record?</h4>
+            <h4 className="text-lg font-bold text-white">Delete this customer enquiry permanently?</h4>
             <p className="text-xs text-slate-300">
-              Are you sure you want to permanently delete enquiry <strong className="text-white">{deleteConfirmId}</strong>? This cannot be undone.
+              Are you sure you want to permanently delete enquiry <strong className="text-white font-mono">{deleteConfirmId}</strong>? This action cannot be undone.
             </p>
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setDeleteConfirmId(null)}
-                className="flex-1 py-2.5 rounded-xl bg-[#002244] text-slate-300 font-semibold text-xs border border-[#003e7e]"
+                className="flex-1 py-2.5 rounded-xl bg-[#002244] text-slate-300 font-semibold text-xs border border-[#003e7e] hover:bg-[#002f5e] transition"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteEnquiry(deleteConfirmId)}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition"
               >
-                Confirm Delete
+                Delete
               </button>
             </div>
           </div>

@@ -87,7 +87,7 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
     setLoading(true);
 
     try {
-      // POST to backend API (prepared for Supabase database storage via server-side logic)
+      // POST to backend API
       const res = await fetch('/api/enquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,15 +98,14 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
       });
 
       const result = await res.json();
-      if (res.ok && result.success) {
-        setSubmittedRef(result.referenceId || 'HJH-CUSTOM');
+      if (res.ok && result.success && result.referenceId) {
+        setSubmittedRef(result.referenceId);
       } else {
-        // Safe fallback
-        setSubmittedRef('HJH-' + Math.floor(100000 + Math.random() * 900000));
+        setErrorMsg(result.error || 'Failed to submit your custom trip plan. Please try again.');
       }
-    } catch (err) {
-      console.warn('Backend API request error, proceeding with local reference ID', err);
-      setSubmittedRef('HJH-' + Math.floor(100000 + Math.random() * 900000));
+    } catch (err: any) {
+      console.error('Custom trip submission error:', err);
+      setErrorMsg('Unable to connect to the server. Please check your internet connection and try again.');
     } finally {
       setLoading(false);
       window.scrollTo({ top: 120, behavior: 'smooth' });

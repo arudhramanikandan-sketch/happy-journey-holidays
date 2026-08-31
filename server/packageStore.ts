@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import { ALL_NEW_31_INTERNATIONAL_PACKAGES } from '../src/data/allNewInternationalPackages.js';
+import { ALL_DOMESTIC_PACKAGES } from '../src/data/domesticTravelData.js';
 
 export interface DayItinerary {
   day: number;
@@ -563,10 +565,10 @@ const INITIAL_PACKAGES_SEED: ManagedPackage[] = [
     days: 5,
     nights: 4,
     duration: '4 Nights / 5 Days',
-    startingPrice: '₹14,499',
-    originalPrice: '₹18,500',
-    offerPrice: '₹14,499',
-    priceDisplayText: 'Starting from ₹14,499 / person',
+    startingPrice: '',
+    originalPrice: '',
+    offerPrice: '',
+    priceDisplayText: '',
     shortDescription: 'Cruise tranquil backwaters in a traditional Alleppey houseboat, stroll through fragrant spice plantations in Thekkady, and relax in Munnar misty tea gardens.',
     fullDescription: 'Our most sought-after Kerala vacation starting directly from Coimbatore or Cochin. Travel in a dedicated private AC cab through Munnar tea gardens, Mattupetty dam, and Eravikulam National Park, visit Periyar Wildlife Sanctuary in Thekkady, and spend a night on an exclusive Deluxe houseboat in Alleppey backwaters with all authentic Kerala meals prepared by your personal onboard chef.',
     image: 'https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=1200&q=80',
@@ -643,10 +645,10 @@ const INITIAL_PACKAGES_SEED: ManagedPackage[] = [
     days: 6,
     nights: 5,
     duration: '5 Nights / 6 Days',
-    startingPrice: '₹22,999',
-    originalPrice: '₹28,000',
-    offerPrice: '₹22,999',
-    priceDisplayText: 'Starting from ₹22,999 / person',
+    startingPrice: '',
+    originalPrice: '',
+    offerPrice: '',
+    priceDisplayText: '',
     shortDescription: 'Stay on a romantic cedar-wood houseboat on Dal Lake, ride the world’s highest Gondola cable car in Gulmarg snow, and explore Betaab valley in Pahalgam.',
     fullDescription: 'Discover the Crown of India with Happy Journey Holidays. This 6-day dream Kashmir tour includes a luxury cedar-wood houseboat stay on Dal Lake with Shikara boat ride, 3 nights in Srinagar premium hotels, 1 night in Pahalgam (Valley of Shepherds), and an exhilarating day in snow-capped Gulmarg with Gondola cable car ride.',
     image: 'https://images.unsplash.com/photo-1595815771614-ade9d652a65d?auto=format&fit=crop&w=1200&q=80',
@@ -732,10 +734,10 @@ const INITIAL_PACKAGES_SEED: ManagedPackage[] = [
     days: 4,
     nights: 3,
     duration: '3 Nights / 4 Days',
-    startingPrice: '₹7,499',
-    originalPrice: '₹12,500',
-    offerPrice: '₹7,499',
-    priceDisplayText: 'Starting from ₹7,499 / person',
+    startingPrice: '',
+    originalPrice: '',
+    offerPrice: '',
+    priceDisplayText: '',
     shortDescription: 'Coimbatore’s favorite hill getaway. Enjoy UNESCO heritage Nilgiri Mountain Toy Train, Botanical Gardens, Pykara lake boat ride, and chocolate factory visits.',
     fullDescription: 'Escape the heat with this convenient 4-day Nilgiri and Palani hill combo starting right from Coimbatore. Includes doorstep pickup, 2 nights in cozy Ooty resorts, 1 night in Kodaikanal, Botanical Gardens, Doddabetta Peak, Pykara waterfalls, Kodai Lake boating, and Pillar Rocks.',
     image: 'https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=1200&q=80',
@@ -806,10 +808,10 @@ const INITIAL_PACKAGES_SEED: ManagedPackage[] = [
     days: 4,
     nights: 3,
     duration: '3 Nights / 4 Days',
-    startingPrice: '₹12,999',
-    originalPrice: '₹16,500',
-    offerPrice: '₹12,999',
-    priceDisplayText: 'Starting from ₹12,999 / person',
+    startingPrice: '',
+    originalPrice: '',
+    offerPrice: '',
+    priceDisplayText: '',
     shortDescription: 'Relax on Calangute and Baga beaches, explore historical churches of Old Goa, experience Mandovi river sunset cruises, and relish coastal seafood.',
     fullDescription: 'Experience the ultimate tropical vacation in Goa. Stay in comfortable beachside resorts, explore the 17th-century Fort Aguada and Chapora Fort, dance to Goan folk tunes on a Mandovi River evening cruise, and discover the UNESCO world heritage Basilica of Bom Jesus.',
     image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80',
@@ -880,10 +882,10 @@ const INITIAL_PACKAGES_SEED: ManagedPackage[] = [
     days: 5,
     nights: 4,
     duration: '4 Nights / 5 Days',
-    startingPrice: '₹24,999',
-    originalPrice: '₹29,500',
-    offerPrice: '₹24,999',
-    priceDisplayText: 'Starting from ₹24,999 / person',
+    startingPrice: '',
+    originalPrice: '',
+    offerPrice: '',
+    priceDisplayText: '',
     shortDescription: 'Cruise to Havelock Island, walk on Asia’s best Radhanagar Beach, try thrilling scuba diving at Elephant Beach, and discover historic Cellular Jail.',
     fullDescription: 'Discover the exotic coral reefs and white sand beaches of Andaman & Nicobar. Includes 2 nights Port Blair, 2 nights Havelock Island resort, high-speed luxury catamaran (Makruzz/Nautika) cruise tickets, Cellular Jail Light & Sound show, Radhanagar Beach sunset, and Elephant Beach water sports.',
     image: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=1200&q=80',
@@ -969,8 +971,143 @@ export function initPackageStore() {
       const raw = fs.readFileSync(PACKAGES_FILE, 'utf-8');
       packagesStore = JSON.parse(raw);
       console.log(`[Package Store] Loaded ${packagesStore.length} persistent packages from disk.`);
+
+      // Ensure all 31 new international packages are present without duplicating or modifying existing packages
+      let addedCount = 0;
+      for (const newPkg of ALL_NEW_31_INTERNATIONAL_PACKAGES) {
+        const exists = packagesStore.some(p => p.id === newPkg.id || p.destination.toLowerCase() === newPkg.destination.toLowerCase());
+        if (!exists) {
+          const maxOrder = packagesStore.reduce((max, p) => Math.max(max, p.sortOrder || 0), 0);
+          const managed: ManagedPackage = {
+            id: newPkg.id,
+            title: newPkg.title,
+            name: newPkg.title,
+            destination: newPkg.destination,
+            category: 'international',
+            days: newPkg.days || 5,
+            nights: newPkg.nights || 4,
+            duration: newPkg.duration || '4 Nights / 5 Days',
+            startingPrice: '',
+            originalPrice: '',
+            offerPrice: '',
+            priceDisplayText: '',
+            shortDescription: newPkg.shortDescription || '',
+            fullDescription: newPkg.fullDescription || '',
+            image: newPkg.image || '',
+            galleryImages: newPkg.galleryImages || [],
+            highlights: newPkg.highlights || [],
+            inclusions: newPkg.inclusions || [],
+            exclusions: newPkg.exclusions || [],
+            itinerarySummary: newPkg.itinerarySummary || [],
+            dayWiseItinerary: newPkg.dayWiseItinerary || [],
+            bookingInformation: newPkg.bookingInformation || 'Passports must have minimum 6 months validity from travel date.',
+            bestFor: newPkg.bestFor || 'Families, Couples & Friends',
+            featured: true,
+            isHidden: false,
+            sortOrder: maxOrder + 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          packagesStore.push(managed);
+          addedCount++;
+        }
+      }
+
+      // Ensure all domestic packages are present and prices are stripped (enquiry-based)
+      let addedDomCount = 0;
+      for (const domPkg of ALL_DOMESTIC_PACKAGES) {
+        const existingIdx = packagesStore.findIndex(p => p.id === domPkg.id || p.title.toLowerCase() === domPkg.title.toLowerCase());
+        if (existingIdx === -1) {
+          const maxOrder = packagesStore.reduce((max, p) => Math.max(max, p.sortOrder || 0), 0);
+          const managed: ManagedPackage = {
+            id: domPkg.id,
+            title: domPkg.title,
+            name: domPkg.title,
+            destination: domPkg.destination,
+            category: 'domestic',
+            days: domPkg.days || 4,
+            nights: domPkg.nights || 3,
+            duration: domPkg.duration || '3 Nights / 4 Days',
+            startingPrice: '',
+            originalPrice: '',
+            offerPrice: '',
+            priceDisplayText: '',
+            shortDescription: domPkg.shortDescription || '',
+            fullDescription: domPkg.fullDescription || '',
+            image: domPkg.image || '',
+            galleryImages: domPkg.galleryImages || [],
+            highlights: domPkg.highlights || [],
+            inclusions: domPkg.inclusions || [],
+            exclusions: domPkg.exclusions || [],
+            itinerarySummary: domPkg.itinerarySummary || [],
+            dayWiseItinerary: domPkg.dayWiseItinerary || [],
+            bookingInformation: domPkg.bookingInformation || 'Doorstep pickup available from Coimbatore and major South Indian cities.',
+            bestFor: domPkg.bestFor || 'Families, Couples & Groups',
+            featured: domPkg.featured ?? true,
+            isHidden: false,
+            sortOrder: maxOrder + 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          packagesStore.push(managed);
+          addedDomCount++;
+        } else {
+          // Ensure no prices for domestic packages
+          packagesStore[existingIdx].startingPrice = '';
+          packagesStore[existingIdx].offerPrice = '';
+          packagesStore[existingIdx].originalPrice = '';
+          packagesStore[existingIdx].priceDisplayText = '';
+        }
+      }
+
+      // Also ensure existing domestic packages have no prices
+      packagesStore.forEach(p => {
+        if (p.category === 'domestic') {
+          p.startingPrice = '';
+          p.offerPrice = '';
+          p.originalPrice = '';
+          p.priceDisplayText = '';
+        }
+      });
+
+      if (addedCount > 0 || addedDomCount > 0) {
+        savePackagesToDisk();
+        console.log(`[Package Store] Added ${addedCount} international and ${addedDomCount} domestic packages to persistent store.`);
+      }
     } else {
-      packagesStore = [...INITIAL_PACKAGES_SEED];
+      packagesStore = [
+        ...INITIAL_PACKAGES_SEED,
+        ...ALL_NEW_31_INTERNATIONAL_PACKAGES.map((newPkg, idx) => ({
+          id: newPkg.id,
+          title: newPkg.title,
+          name: newPkg.title,
+          destination: newPkg.destination,
+          category: 'international' as const,
+          days: newPkg.days || 5,
+          nights: newPkg.nights || 4,
+          duration: newPkg.duration || '4 Nights / 5 Days',
+          startingPrice: '',
+          originalPrice: '',
+          offerPrice: '',
+          priceDisplayText: '',
+          shortDescription: newPkg.shortDescription || '',
+          fullDescription: newPkg.fullDescription || '',
+          image: newPkg.image || '',
+          galleryImages: newPkg.galleryImages || [],
+          highlights: newPkg.highlights || [],
+          inclusions: newPkg.inclusions || [],
+          exclusions: newPkg.exclusions || [],
+          itinerarySummary: newPkg.itinerarySummary || [],
+          dayWiseItinerary: newPkg.dayWiseItinerary || [],
+          bookingInformation: newPkg.bookingInformation || 'Passports must have minimum 6 months validity from travel date.',
+          bestFor: newPkg.bestFor || 'Families, Couples & Friends',
+          featured: true,
+          isHidden: false,
+          sortOrder: 20 + idx,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }))
+      ];
       savePackagesToDisk();
       console.log(`[Package Store] Initialized fresh package store with ${packagesStore.length} domestic & international packages.`);
     }

@@ -3,13 +3,35 @@ import path from 'path';
 import { appendEnquiryToGoogleSheet, updateEnquiryStatusInGoogleSheet, GoogleSheetEnquiryRow } from './googleSheets.js';
 import { sendEnquiryNotificationEmail } from './emailNotifier.js';
 
-export type EnquiryStatus = 'New' | 'Contacted' | 'In Progress' | 'Completed' | 'Cancelled';
+export type EnquiryStatus = 
+  | 'NEW' 
+  | 'CONTACTED' 
+  | 'QUOTE SENT' 
+  | 'CONFIRMED' 
+  | 'LOST / CANCELLED' 
+  | 'CLOSED';
+
+export type EnquirySource = 'Website Enquiry' | 'WhatsApp Direct';
+
+export function normalizeStatus(status?: string): EnquiryStatus {
+  if (!status) return 'NEW';
+  const s = status.toUpperCase().trim();
+  if (s === 'NEW') return 'NEW';
+  if (s === 'CONTACTED') return 'CONTACTED';
+  if (s === 'QUOTE SENT' || s === 'IN PROGRESS' || s === 'QUOTED') return 'QUOTE SENT';
+  if (s === 'CONFIRMED' || s === 'COMPLETED' || s === 'BOOKED') return 'CONFIRMED';
+  if (s === 'LOST / CANCELLED' || s === 'CANCELLED' || s === 'LOST' || s === 'REJECTED') return 'LOST / CANCELLED';
+  if (s === 'CLOSED' || s === 'DONE') return 'CLOSED';
+  return 'NEW';
+}
+
 export type EnquiryCategory = 'Domestic' | 'International' | 'Custom' | 'Service' | 'General';
 
 export interface EnquiryRecord {
   id: string; // e.g. 'HJH-829104'
   enquiryReference: string; // same as id
-  date: string; // e.g. '30/08/2026' or '2026-08-30'
+  source: EnquirySource; // 'Website Enquiry' or 'WhatsApp Direct'
+  date: string; // e.g. '31/08/2026'
   time: string; // e.g. '04:15 PM'
   customerName: string;
   phoneNumber: string;
@@ -25,6 +47,7 @@ export interface EnquiryRecord {
   budget?: string;
   tripType?: string;
   departureCity?: string;
+  specialRequirements?: string;
   customerMessage?: string;
   status: EnquiryStatus;
   createdAt: string; // ISO
@@ -48,6 +71,7 @@ function ensureStorageExists() {
       {
         id: 'HJH-739201',
         enquiryReference: 'HJH-739201',
+        source: 'Website Enquiry',
         date: new Date().toLocaleDateString('en-IN'),
         time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
         customerName: 'Karthik Subramanian',
@@ -63,8 +87,9 @@ function ensureStorageExists() {
         budget: '₹1,50,000 - ₹2,00,000',
         tripType: 'Family Holiday',
         departureCity: 'Coimbatore',
+        specialRequirements: 'Sentosa pass, Universal Studios tickets, and 4-star hotel in Kuala Lumpur.',
         customerMessage: 'Looking for Sentosa pass, Universal Studios tickets, and 4-star hotel in Kuala Lumpur.',
-        status: 'New',
+        status: 'NEW',
         createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
         updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
         googleSheetStatus: 'synced',
@@ -73,6 +98,7 @@ function ensureStorageExists() {
       {
         id: 'HJH-618290',
         enquiryReference: 'HJH-618290',
+        source: 'Website Enquiry',
         date: new Date().toLocaleDateString('en-IN'),
         time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
         customerName: 'Priya & Anand',
@@ -88,8 +114,9 @@ function ensureStorageExists() {
         budget: '₹75,000 - ₹1,00,000',
         tripType: 'Honeymoon',
         departureCity: 'Coimbatore',
+        specialRequirements: 'Luxury houseboat stay at Dal Lake, Gulmarg Gondola Phase 2 tickets, and romantic candle light dinner.',
         customerMessage: 'Need luxury houseboat stay at Dal Lake, Gulmarg Gondola Phase 2 tickets, and romantic candle light dinner.',
-        status: 'In Progress',
+        status: 'QUOTE SENT',
         createdAt: new Date(Date.now() - 3600000 * 6).toISOString(),
         updatedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
         googleSheetStatus: 'synced',
@@ -104,7 +131,13 @@ export function loadEnquiries(): EnquiryRecord[] {
   ensureStorageExists();
   try {
     const raw = fs.readFileSync(ENQUIRIES_FILE, 'utf-8');
-    return JSON.parse(raw);
+    const records: EnquiryRecord[] = JSON.parse(raw);
+    return records.map(rec => ({
+      ...rec,
+      source: rec.source || 'Website Enquiry',
+      status: normalizeStatus(rec.status),
+      specialRequirements: rec.specialRequirements || rec.customerMessage || ''
+    }));
   } catch (err) {
     console.error('Failed to read enquiries file:', err);
     return [];
@@ -121,7 +154,8 @@ function saveEnquiries(enquiries: EnquiryRecord[]) {
 }
 
 export interface CreateEnquiryInput {
-  type?: 'custom_trip' | 'package_quote' | 'service_quote' | 'contact_message';
+  type?: 'custom_trip' | 'package_quote' | 'service_quote' | 'contact_message' | 'whatsapp_direct';
+  source?: EnquirySource;
   fullName: string;
   phone: string;
   email?: string;
@@ -170,23 +204,56 @@ export async function createNewCustomerEnquiry(input: CreateEnquiryInput): Promi
       dest.includes('malaysia') ||
       dest.includes('dubai') ||
       dest.includes('thailand') ||
+      dest.includes('bangkok') ||
+      dest.includes('phuket') ||
+      dest.includes('pattaya') ||
       dest.includes('bali') ||
+      dest.includes('indonesia') ||
       dest.includes('vietnam') ||
       dest.includes('europe') ||
       dest.includes('sri lanka') ||
       dest.includes('maldives') ||
+      dest.includes('mauritius') ||
+      dest.includes('reunion') ||
+      dest.includes('uk') ||
+      dest.includes('united kingdom') ||
+      dest.includes('london') ||
+      dest.includes('france') ||
+      dest.includes('paris') ||
+      dest.includes('belgium') ||
+      dest.includes('bruges') ||
+      dest.includes('brussels') ||
+      dest.includes('netherlands') ||
+      dest.includes('amsterdam') ||
+      dest.includes('germany') ||
+      dest.includes('munich') ||
+      dest.includes('berlin') ||
+      dest.includes('switzerland') ||
+      dest.includes('swiss') ||
+      dest.includes('italy') ||
+      dest.includes('rome') ||
+      dest.includes('venice') ||
+      dest.includes('vatican') ||
       pkg.includes('international')
     ) {
       category = 'International';
     } else if (
       dest.includes('kashmir') ||
       dest.includes('kerala') ||
+      dest.includes('munnar') ||
+      dest.includes('alleppey') ||
       dest.includes('himachal') ||
+      dest.includes('manali') ||
+      dest.includes('shimla') ||
       dest.includes('goa') ||
       dest.includes('andaman') ||
       dest.includes('rajasthan') ||
+      dest.includes('jaipur') ||
+      dest.includes('udaipur') ||
       dest.includes('ooty') ||
       dest.includes('kodaikanal') ||
+      dest.includes('coorg') ||
+      dest.includes('wayanad') ||
       pkg.includes('domestic')
     ) {
       category = 'Domestic';
@@ -220,6 +287,7 @@ export async function createNewCustomerEnquiry(input: CreateEnquiryInput): Promi
   const newRecord: EnquiryRecord = {
     id: enquiryReference,
     enquiryReference,
+    source: input.source || (input.type === 'whatsapp_direct' ? 'WhatsApp Direct' : 'Website Enquiry'),
     date: dateStr,
     time: timeStr,
     customerName: input.fullName.trim(),
@@ -236,8 +304,9 @@ export async function createNewCustomerEnquiry(input: CreateEnquiryInput): Promi
     budget: input.budget,
     tripType: input.tripType,
     departureCity: input.departureCity,
-    customerMessage: combinedMessage || 'Direct inquiry from website',
-    status: 'New',
+    specialRequirements: input.specialRequirements || input.notes || input.message || '',
+    customerMessage: combinedMessage || (input.type === 'whatsapp_direct' ? 'WhatsApp Direct Click' : 'Direct inquiry from website'),
+    status: 'NEW',
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
     googleSheetStatus: 'pending',

@@ -13,7 +13,7 @@ export interface GoogleSheetEnquiryRow {
   travelDate: string;
   numberOfTravellers: string;
   customerMessage: string;
-  status: 'New' | 'Contacted' | 'In Progress' | 'Completed' | 'Cancelled';
+  status: 'NEW' | 'CONTACTED' | 'QUOTE SENT' | 'CONFIRMED' | 'LOST / CANCELLED' | 'CLOSED' | string;
 }
 
 /**

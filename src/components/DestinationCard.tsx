@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, ArrowRight, MessageCircle, Clock, Sparkles } from 'lucide-react';
+import { MapPin, ArrowRight, MessageCircle, Clock, Sparkles, Send } from 'lucide-react';
 import { Destination } from '../types';
 import { createDestinationWhatsAppLink } from '../utils/whatsapp';
 
@@ -78,15 +78,15 @@ export const DestinationCard: React.FC<DestinationCardProps> = ({
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="pt-2 border-t border-[#002b54] flex items-center gap-2">
+        {/* Actions: Submit Trip Enquiry & WhatsApp Direct */}
+        <div className="pt-3 border-t border-[#002b54] flex flex-col sm:flex-row items-center gap-2">
           <button
             id={`explore-btn-${destination.id}`}
-            onClick={() => onExplore(destination)}
-            className="flex-1 bg-[#002447] hover:bg-[#00386e] text-white font-bold text-xs py-2.5 px-3 rounded-xl transition border border-[#00478a] shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+            onClick={() => onGetQuote(`${destination.name} Tour Package`)}
+            className="w-full sm:flex-1 bg-[#F27D26] hover:bg-[#d96c1e] text-white font-bold text-xs py-2.5 px-3 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
           >
-            <span>Explore Packages</span>
-            <ArrowRight size={13} className="text-[#F27D26]" />
+            <Send size={13} />
+            <span>Submit Trip Enquiry</span>
           </button>
 
           <a
@@ -94,10 +94,11 @@ export const DestinationCard: React.FC<DestinationCardProps> = ({
             href={createDestinationWhatsAppLink(destination.name)}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl transition flex items-center justify-center active:scale-95 shadow-sm"
-            title={`Enquire about ${destination.name} on WhatsApp`}
+            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 shadow-sm"
+            title={`Enquire on WhatsApp Direct about ${destination.name}`}
           >
-            <MessageCircle size={16} />
+            <MessageCircle size={15} />
+            <span className="sm:hidden">WhatsApp Direct</span>
           </a>
         </div>
       </div>

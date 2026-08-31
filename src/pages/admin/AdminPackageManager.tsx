@@ -112,11 +112,20 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
     }, 4000);
   };
 
+  const getAuthHeaders = (extra: Record<string, string> = {}): Record<string, string> => {
+    const token = localStorage.getItem('admin_token');
+    const headers: Record<string, string> = { ...extra };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  };
+
   const fetchPackages = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/packages?category=${category}`);
+      const res = await fetch(`/api/admin/packages?category=${category}`, {
+        headers: getAuthHeaders()
+      });
       if (!res.ok) {
         if (res.status === 401) {
           throw new Error('Unauthorized. Please log in to admin panel.');
@@ -225,7 +234,7 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
         // Upload immediately to server
         const res = await fetch('/api/admin/upload-image', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ imageBase64: base64Data, originalName: file.name })
         });
         const data = await res.json();
@@ -262,7 +271,7 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
     try {
       const res = await fetch(`/api/admin/packages/${pkg.id}/visibility`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ isHidden: newHiddenState })
       });
 
@@ -292,7 +301,7 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
       const orderedIds = updated.map(p => p.id);
       const res = await fetch('/api/admin/packages/reorder', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ category, orderedIds })
       });
 
@@ -331,13 +340,13 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
       if (isNewPackage) {
         res = await fetch('/api/admin/packages', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(payload)
         });
       } else {
         res = await fetch(`/api/admin/packages/${formData.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(payload)
         });
       }
@@ -363,7 +372,8 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
     setDeleting(true);
     try {
       const res = await fetch(`/api/admin/packages/${deleteTarget.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAuthHeaders()
       });
       const data = await res.json();
       if (!res.ok || !data.success) {

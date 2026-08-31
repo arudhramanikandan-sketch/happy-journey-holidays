@@ -1,6 +1,9 @@
 import { Destination, HolidayPackage, TravelService, Testimonial } from '../types';
+import { ALL_NEW_31_INTERNATIONAL_DESTINATIONS, ALL_NEW_31_INTERNATIONAL_PACKAGES } from './allNewInternationalPackages';
+import { NEW_11_INTERNATIONAL_DESTINATIONS, NEW_11_INTERNATIONAL_PACKAGES } from './new11InternationalPackages';
+import { ALL_DOMESTIC_DESTINATIONS, ALL_DOMESTIC_PACKAGES } from './domesticTravelData';
 
-export const INTERNATIONAL_DESTINATIONS: Destination[] = [
+const INITIAL_INTERNATIONAL_DESTINATIONS: Destination[] = [
   {
     id: 'singapore',
     name: 'Singapore',
@@ -9,7 +12,7 @@ export const INTERNATIONAL_DESTINATIONS: Destination[] = [
     tagline: 'Futuristic Skyline, Lush Gardens & Sentosa Island',
     description: 'Experience the world-renowned Gardens by the Bay, thrilling Universal Studios Singapore, Marina Bay Sands SkyPark, Night Safari, and shopping along Orchard Road.',
     image: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹34,999',
+    startingPrice: '',
     idealDuration: '4 Nights / 5 Days',
     popularExperiences: [
       'Universal Studios & Sentosa Cable Car',
@@ -30,7 +33,7 @@ export const INTERNATIONAL_DESTINATIONS: Destination[] = [
     tagline: 'Twin Towers, Genting Cable Cars & Tropical Charm',
     description: 'Discover the iconic Petronas Twin Towers, cool breeze of Genting Highlands with its indoor theme park and casino, Batu Caves, and historical Malacca.',
     image: 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹28,999',
+    startingPrice: '',
     idealDuration: '4 Nights / 5 Days',
     popularExperiences: [
       'Petronas Twin Towers & Skybridge Entry',
@@ -51,7 +54,7 @@ export const INTERNATIONAL_DESTINATIONS: Destination[] = [
     tagline: 'Golden Temples, Phi Phi Island & Vibrant Nightlife',
     description: 'Immerse in the energy of Bangkok, crystal-clear waters of Phuket, scenic limestone cliffs in Krabi, and family fun in Coral Island Pattaya.',
     image: 'https://images.unsplash.com/photo-1528181304800-259b08848526?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹26,499',
+    startingPrice: '',
     idealDuration: '5 Nights / 6 Days',
     popularExperiences: [
       'Phi Phi & James Bond Island Speedboat Tour',
@@ -72,7 +75,7 @@ export const INTERNATIONAL_DESTINATIONS: Destination[] = [
     tagline: 'World Wonders, Desert Safari & Luxury Living',
     description: 'Stand atop the world at Burj Khalifa 124th floor, conquer the dunes in a 4x4 Desert Safari with BBQ dinner, cruise Marina on a luxury yacht, and visit Ferrari World Abu Dhabi.',
     image: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹42,999',
+    startingPrice: '',
     idealDuration: '4 Nights / 5 Days',
     popularExperiences: [
       'Burj Khalifa 124th/125th Floor Observation Deck',
@@ -93,7 +96,7 @@ export const INTERNATIONAL_DESTINATIONS: Destination[] = [
     tagline: 'Island of the Gods, Ubud Swings & Turquoise Waves',
     description: 'Experience Bali’s cultural heart in Ubud with lush rice terraces, romantic sunset at Uluwatu Cliff Temple, pristine Nusa Penida day trip, and private pool villas.',
     image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹31,999',
+    startingPrice: '',
     idealDuration: '5 Nights / 6 Days',
     popularExperiences: [
       'Ubud Bali Swing & Tegalalang Rice Terrace',
@@ -107,27 +110,6 @@ export const INTERNATIONAL_DESTINATIONS: Destination[] = [
     featured: true
   },
   {
-    id: 'maldives',
-    name: 'Maldives',
-    country: 'Maldives',
-    category: 'international',
-    tagline: 'Pristine Overwater Villas & Crystal Lagoons',
-    description: 'The ultimate romantic getaway with private water villas, all-inclusive luxury resort meals, sunset dolphin cruises, and vibrant coral reef snorkeling.',
-    image: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹64,999',
-    idealDuration: '3 Nights / 4 Days',
-    popularExperiences: [
-      'Stay in Luxury Overwater Villa with Ocean Access',
-      'Speedboat or Seaplane Resort Transfers',
-      'All-Inclusive Meals & Premium Beverages',
-      'Guided Snorkeling & Sunset Dolphin Cruise'
-    ],
-    bestTimeToVisit: 'November to April',
-    visaInfo: 'Free 30-Day Tourist Visa on Arrival for Indian citizens',
-    highlights: ['Water Villa', 'All-Inclusive Dining', 'Seaplane Ride', 'Coral Snorkeling'],
-    featured: true
-  },
-  {
     id: 'vietnam',
     name: 'Vietnam',
     country: 'Vietnam',
@@ -135,7 +117,7 @@ export const INTERNATIONAL_DESTINATIONS: Destination[] = [
     tagline: 'Halong Bay Cruise, Golden Bridge & Lanterns of Hoi An',
     description: 'Explore the scenic limestone islands of Halong Bay on a luxury overnight cruise, walk the iconic Golden Hand Bridge in Ba Na Hills, and cycle through ancient Hoi An.',
     image: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹37,999',
+    startingPrice: '',
     idealDuration: '5 Nights / 6 Days',
     popularExperiences: [
       'Overnight Luxury Halong Bay Cruise with Kayaking',
@@ -156,7 +138,7 @@ export const INTERNATIONAL_DESTINATIONS: Destination[] = [
     tagline: 'Eiffel Tower Elegance & Swiss Alpine Glaciers',
     description: 'A dream European voyage combining romantic Paris with Seine river cruise, Mount Titlis revolving cable car, Jungfraujoch Top of Europe, and Lake Lucerne.',
     image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹1,24,999',
+    startingPrice: '',
     idealDuration: '7 Nights / 8 Days',
     popularExperiences: [
       'Eiffel Tower Level 2 Entry & Seine River Cruise in Paris',
@@ -171,178 +153,23 @@ export const INTERNATIONAL_DESTINATIONS: Destination[] = [
   }
 ];
 
-export const DOMESTIC_DESTINATIONS: Destination[] = [
-  {
-    id: 'kerala',
-    name: 'Kerala',
-    country: 'India',
-    category: 'domestic',
-    tagline: 'God’s Own Country — Backwaters & Green Hills',
-    description: 'Cruise tranquil backwaters in a traditional Alleppey houseboat, stroll through fragrant spice plantations in Thekkady, and relax on Kovalam beach.',
-    image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹14,499',
-    idealDuration: '4 Nights / 5 Days',
-    popularExperiences: [
-      'Exclusive Deluxe Alleppey Houseboat Stay with All Meals',
-      'Periyar Wildlife Sanctuary Boating & Elephant Camp',
-      'Kathakali Dance & Kalaripayattu Martial Arts Show',
-      'Kovalam Lighthouse Beach & Sunset Walk'
-    ],
-    bestTimeToVisit: 'September to March',
-    highlights: ['Alleppey Houseboat', 'Munnar Hills', 'Thekkady', 'Cochin Fort'],
-    featured: true
-  },
-  {
-    id: 'munnar',
-    name: 'Munnar',
-    country: 'India',
-    category: 'domestic',
-    tagline: 'Rolling Tea Estates, Misty Valleys & Waterfalls',
-    description: 'Just a comfortable drive from Coimbatore! Escape into endless velvet green tea slopes, cool misty mornings, Mattupetty dam, and Eravikulam National Park.',
-    image: 'https://images.unsplash.com/photo-1588668214407-6ea9a6d8c272?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹8,999',
-    idealDuration: '2 Nights / 3 Days',
-    popularExperiences: [
-      'Tata Tea Museum & Fresh Tea Tasting',
-      'Eravikulam National Park Nilgiri Tahr Safari',
-      'Mattupetty Dam Speedboat Ride & Echo Point',
-      'Scenic viewpoints at Top Station & Kundala Lake'
-    ],
-    bestTimeToVisit: 'September to May',
-    highlights: ['Tea Gardens', 'Mattupetty Dam', 'Top Station', 'Eravikulam Park'],
-    featured: true
-  },
-  {
-    id: 'ooty',
-    name: 'Ooty (Udhagamandalam)',
-    country: 'India',
-    category: 'domestic',
-    tagline: 'Queen of Hill Stations — Nilgiri Toy Train & Pine Forests',
-    description: 'Coimbatore’s favorite hill getaway. Enjoy the UNESCO heritage Nilgiri Mountain Toy Train, Botanical Gardens, Pykara lake boat ride, and chocolate factory visits.',
-    image: 'https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹7,499',
-    idealDuration: '2 Nights / 3 Days',
-    popularExperiences: [
-      'UNESCO Heritage Nilgiri Mountain Toy Train Ride',
-      'Government Botanical Garden & Rose Garden Visit',
-      'Pykara Lake Speedboating & Shooting Point',
-      'Doddabetta Peak Highest Viewpoint & Homemade Chocolates'
-    ],
-    bestTimeToVisit: 'October to June',
-    highlights: ['Toy Train', 'Botanical Garden', 'Pykara Lake', 'Doddabetta'],
-    featured: true
-  },
-  {
-    id: 'kodaikanal',
-    name: 'Kodaikanal',
-    country: 'India',
-    category: 'domestic',
-    tagline: 'Princess of Hill Stations — Mist, Lakes & Pine Woods',
-    description: 'Walk through pine forest trails, cycle around star-shaped Kodai lake, gaze at the majestic Pillar Rocks, and experience cool mountain breezes.',
-    image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹7,999',
-    idealDuration: '2 Nights / 3 Days',
-    popularExperiences: [
-      'Boating & Cycling around Star-Shaped Kodai Lake',
-      'Coaker’s Walk & Pillar Rocks Viewpoint',
-      'Pine Forest Nature Stroll & Guna Caves',
-      'Silver Cascade & Bear Shola Waterfalls'
-    ],
-    bestTimeToVisit: 'September to May',
-    highlights: ['Kodai Lake', 'Pillar Rocks', 'Coaker’s Walk', 'Pine Forest'],
-    featured: true
-  },
-  {
-    id: 'goa',
-    name: 'Goa',
-    country: 'India',
-    category: 'domestic',
-    tagline: 'Sun-Kissed Beaches, Portuguese Forts & Cruise Parties',
-    description: 'Relax on Calangute and Baga beaches, explore historical churches of Old Goa, experience Mandovi river sunset cruises, and relish delicious coastal seafood.',
-    image: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹12,999',
-    idealDuration: '3 Nights / 4 Days',
-    popularExperiences: [
-      'North Goa Beach Hopping (Baga, Calangute, Anjuna)',
-      'South Goa Heritage (Basilica of Bom Jesus & Fort Aguada)',
-      'Mandovi River Sunset Cruise with Goan Folk Dance',
-      'Water sports & Scuba diving at Grand Island'
-    ],
-    bestTimeToVisit: 'October to April',
-    highlights: ['Baga Beach', 'Fort Aguada', 'Mandovi Cruise', 'Old Goa Churches'],
-    featured: true
-  },
-  {
-    id: 'kashmir',
-    name: 'Kashmir',
-    country: 'India',
-    category: 'domestic',
-    tagline: 'Paradise on Earth — Dal Lake Shikara & Snow Peaks',
-    description: 'Stay on a romantic cedar-wood houseboat on Dal Lake, ride the world’s highest Gondola cable car in Gulmarg snow, and explore Betaab valley in Pahalgam.',
-    image: 'https://images.unsplash.com/photo-1566837945700-30057527ade0?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹22,999',
-    idealDuration: '5 Nights / 6 Days',
-    popularExperiences: [
-      'Shikara Boat Ride on Dal Lake & Houseboat Stay',
-      'Gulmarg Gondola Cable Car Ride to Phase 1 & 2',
-      'Pahalgam Valley of Shepherds & Aru/Betaab Valley Tour',
-      'Mughal Gardens (Shalimar & Nishat Bagh) in Srinagar'
-    ],
-    bestTimeToVisit: 'All Year Round (Snow: Dec-Feb, Green: Apr-Oct)',
-    highlights: ['Dal Lake Shikara', 'Gulmarg Gondola', 'Pahalgam Valley', 'Mughal Gardens'],
-    featured: true
-  },
-  {
-    id: 'rajasthan',
-    name: 'Rajasthan',
-    country: 'India',
-    category: 'domestic',
-    tagline: 'Land of Maharajas — Royal Palaces & Desert Dunes',
-    description: 'Marvel at Jaipur’s Amber Fort and Hawa Mahal, cruise Lake Pichola overlooking Udaipur City Palace, and camp under the starry desert sky in Jaisalmer.',
-    image: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹21,499',
-    idealDuration: '5 Nights / 6 Days',
-    popularExperiences: [
-      'Amber Fort Elephant/Jeep Ride & City Palace Jaipur',
-      'Lake Pichola Boat Ride & Jag Mandir in Udaipur',
-      'Thar Desert Sam Dunes Camel Safari & Rajasthani Folk Camp',
-      'Mehrangarh Fort & Blue City Walk in Jodhpur'
-    ],
-    bestTimeToVisit: 'October to March',
-    highlights: ['Jaipur Pink City', 'Udaipur Palaces', 'Jaisalmer Desert', 'Jodhpur Fort'],
-    featured: false
-  },
-  {
-    id: 'andaman',
-    name: 'Andaman Islands',
-    country: 'India',
-    category: 'domestic',
-    tagline: 'Turquoise Waters, Coral Reefs & Radhanagar Beach',
-    description: 'Cruise to Havelock Island, walk on Asia’s best Radhanagar Beach, try thrilling scuba diving at Elephant Beach, and discover the historic Cellular Jail.',
-    image: 'https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=1200&q=80',
-    startingPrice: '₹24,999',
-    idealDuration: '4 Nights / 5 Days',
-    popularExperiences: [
-      'Radhanagar Beach Sunset on Havelock Island (Asia’s Best Beach)',
-      'Scuba Diving / Sea Walk at Elephant Beach with Corals',
-      'Cellular Jail Light and Sound Show in Port Blair',
-      'High-Speed Luxury Catamaran (Makruzz/Nautika) Cruise Transfers'
-    ],
-    bestTimeToVisit: 'October to May',
-    highlights: ['Havelock Island', 'Radhanagar Beach', 'Scuba Diving', 'Cellular Jail'],
-    featured: false
-  }
+export const INTERNATIONAL_DESTINATIONS: Destination[] = [
+  ...INITIAL_INTERNATIONAL_DESTINATIONS,
+  ...ALL_NEW_31_INTERNATIONAL_DESTINATIONS,
+  ...NEW_11_INTERNATIONAL_DESTINATIONS
 ];
 
-export const FEATURED_PACKAGES: HolidayPackage[] = [
+export const DOMESTIC_DESTINATIONS: Destination[] = ALL_DOMESTIC_DESTINATIONS;
+export const DOMESTIC_PACKAGES: HolidayPackage[] = ALL_DOMESTIC_PACKAGES;
+
+const INITIAL_PACKAGES: HolidayPackage[] = [
   {
     id: 'pkg-singapore-sentosa',
     title: 'Singapore Highlights with Sentosa & Universal Studios',
     destination: 'Singapore',
     category: 'international',
     duration: '4 Nights / 5 Days',
-    startingPrice: '₹36,999',
-    originalPrice: '₹42,000',
+    startingPrice: '',
     image: 'https://images.unsplash.com/photo-1565967511849-76a60a516170?auto=format&fit=crop&w=800&q=80',
     highlights: [
       '4-Star Central Hotel with Daily Breakfast',
@@ -368,8 +195,7 @@ export const FEATURED_PACKAGES: HolidayPackage[] = [
     destination: 'Malaysia',
     category: 'international',
     duration: '4 Nights / 5 Days',
-    startingPrice: '₹28,999',
-    originalPrice: '₹34,000',
+    startingPrice: '',
     image: 'https://images.unsplash.com/photo-1541417904950-b855846fe074?auto=format&fit=crop&w=800&q=80',
     highlights: [
       '3 Nights Kuala Lumpur + 1 Night Genting Highlands',
@@ -395,8 +221,7 @@ export const FEATURED_PACKAGES: HolidayPackage[] = [
     destination: 'Thailand',
     category: 'international',
     duration: '5 Nights / 6 Days',
-    startingPrice: '₹27,499',
-    originalPrice: '₹32,500',
+    startingPrice: '',
     image: 'https://images.unsplash.com/photo-1506665531195-3566af2b4dfa?auto=format&fit=crop&w=800&q=80',
     highlights: [
       '3 Nights Phuket + 2 Nights Bangkok (4-Star Hotels)',
@@ -423,8 +248,7 @@ export const FEATURED_PACKAGES: HolidayPackage[] = [
     destination: 'Dubai',
     category: 'international',
     duration: '4 Nights / 5 Days',
-    startingPrice: '₹43,999',
-    originalPrice: '₹50,000',
+    startingPrice: '',
     image: 'https://images.unsplash.com/photo-1580674684081-7617fbf3d745?auto=format&fit=crop&w=800&q=80',
     highlights: [
       'Burj Khalifa 124th Floor Ticket with Dubai Mall Fountain',
@@ -450,8 +274,7 @@ export const FEATURED_PACKAGES: HolidayPackage[] = [
     destination: 'Bali',
     category: 'international',
     duration: '5 Nights / 6 Days',
-    startingPrice: '₹33,999',
-    originalPrice: '₹39,999',
+    startingPrice: '',
     image: 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?auto=format&fit=crop&w=800&q=80',
     highlights: [
       '3 Nights Kuta Beach Resort + 2 Nights Ubud Private Pool Villa',
@@ -478,8 +301,7 @@ export const FEATURED_PACKAGES: HolidayPackage[] = [
     destination: 'Kerala',
     category: 'domestic',
     duration: '4 Nights / 5 Days',
-    startingPrice: '₹14,999',
-    originalPrice: '₹18,500',
+    startingPrice: '',
     image: 'https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=800&q=80',
     highlights: [
       'Pick up directly from Coimbatore / Cochin in AC Cab',
@@ -505,8 +327,7 @@ export const FEATURED_PACKAGES: HolidayPackage[] = [
     destination: 'Kashmir',
     category: 'domestic',
     duration: '5 Nights / 6 Days',
-    startingPrice: '₹23,499',
-    originalPrice: '₹28,000',
+    startingPrice: '',
     image: 'https://images.unsplash.com/photo-1595815771614-ade9d652a65d?auto=format&fit=crop&w=800&q=80',
     highlights: [
       '1 Night Luxury Srinagar Houseboat + 3 Nights Srinagar + 1 Night Pahalgam',
@@ -533,8 +354,7 @@ export const FEATURED_PACKAGES: HolidayPackage[] = [
     destination: 'Ooty & Kodaikanal',
     category: 'domestic',
     duration: '3 Nights / 4 Days',
-    startingPrice: '₹9,999',
-    originalPrice: '₹12,500',
+    startingPrice: '',
     image: 'https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=800&q=80',
     highlights: [
       'Doorstep Pickup & Drop from Coimbatore',
@@ -553,6 +373,13 @@ export const FEATURED_PACKAGES: HolidayPackage[] = [
       'Day 4: Pillar Rocks, Pine Forest & return to Coimbatore'
     ]
   }
+];
+
+export const FEATURED_PACKAGES: HolidayPackage[] = [
+  ...ALL_DOMESTIC_PACKAGES,
+  ...INITIAL_PACKAGES,
+  ...ALL_NEW_31_INTERNATIONAL_PACKAGES,
+  ...NEW_11_INTERNATIONAL_PACKAGES
 ];
 
 export const TRAVEL_SERVICES: TravelService[] = [

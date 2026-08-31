@@ -6,7 +6,8 @@ import {
   Sparkles, 
   MapPin, 
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  Send
 } from 'lucide-react';
 import { HolidayPackage } from '../types';
 import { createDestinationWhatsAppLink } from '../utils/whatsapp';
@@ -93,38 +94,26 @@ export const PackageCard: React.FC<PackageCardProps> = ({
 
         {/* Price & Action */}
         <div className="pt-3 border-t border-[#002b54] flex flex-col gap-3">
-          <div className="flex items-baseline justify-between">
-            <div>
-              <span className="text-[10px] uppercase font-semibold text-slate-400 block">
-                Starting from
-              </span>
-              <div className="flex items-baseline gap-1.5">
-                <span className="font-heading font-extrabold text-xl text-white">
-                  {pkg.startingPrice}
-                </span>
-                <span className="text-[11px] text-slate-400 font-normal">/ person</span>
-                {pkg.originalPrice && (
-                  <span className="text-xs text-slate-500 line-through">
-                    {pkg.originalPrice}
-                  </span>
-                )}
-              </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs text-slate-300">
+              <Sparkles size={13} className="text-[#F27D26]" />
+              <span className="font-medium text-slate-300">Custom Itinerary & Quote on Request</span>
             </div>
 
-            <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 px-2 py-1 rounded-md border border-emerald-700/50">
-              Customizable
+            <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-700/50">
+              100% Customizable
             </span>
           </div>
 
-          {/* Action buttons */}
-          <div className="grid grid-cols-2 gap-2">
+          {/* Action buttons: SUBMIT TRIP ENQUIRY & ENQUIRE ON WHATSAPP DIRECT */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
             <button
-              id={`get-quote-pkg-${pkg.id}`}
+              id={`submit-enquiry-pkg-${pkg.id}`}
               onClick={() => onGetQuote(`${pkg.title} (${pkg.destination})`)}
-              className="w-full bg-[#002447] hover:bg-[#00386e] text-white font-bold text-xs py-2.5 px-3 rounded-xl transition border border-[#00478a] shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              className="w-full bg-[#F27D26] hover:bg-[#d96c1e] text-white font-bold text-xs py-2.5 px-2.5 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
             >
-              <span>Get Quote</span>
-              <ArrowRight size={13} className="text-[#F27D26]" />
+              <Send size={13} />
+              <span>Submit Trip Enquiry</span>
             </button>
 
             <a
@@ -132,11 +121,24 @@ export const PackageCard: React.FC<PackageCardProps> = ({
               href={createDestinationWhatsAppLink(pkg.destination, pkg.title)}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 shadow-sm"
-              title="Enquire on WhatsApp"
+              onClick={() => {
+                // Asynchronously log WhatsApp Direct Enquiry to Admin Backend
+                fetch('/api/enquiries/whatsapp-click', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    packageName: pkg.title,
+                    destination: pkg.destination,
+                    customerName: 'WhatsApp Visitor',
+                    travelers: 'Direct WhatsApp Contact'
+                  })
+                }).catch(() => {});
+              }}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 shadow-sm"
+              title={`Enquire on WhatsApp Direct about ${pkg.title}`}
             >
               <MessageCircle size={14} />
-              <span>WhatsApp</span>
+              <span>WhatsApp Direct</span>
             </a>
           </div>
         </div>

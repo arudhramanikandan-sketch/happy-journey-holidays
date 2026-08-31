@@ -120,7 +120,11 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
   const checkCurrentSession = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/me');
+      const token = localStorage.getItem('admin_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/admin/me', { headers });
       const data = await res.json();
       if (data.authenticated && data.user) {
         setAdminUser(data.user);
@@ -138,7 +142,11 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
 
   const fetchDashboardData = async () => {
     try {
-      const res = await fetch('/api/admin/dashboard-data');
+      const token = localStorage.getItem('admin_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/admin/dashboard-data', { headers });
       if (res.ok) {
         const data = await res.json();
         setDashboardData(data);
@@ -218,6 +226,10 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
         return;
       }
 
+      if (data.sessionToken) {
+        localStorage.setItem('admin_token', data.sessionToken);
+      }
+
       setAdminUser(data.user);
       setAuthState('dashboard');
       fetchDashboardData();
@@ -254,6 +266,10 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
         return;
       }
 
+      if (data.sessionToken) {
+        localStorage.setItem('admin_token', data.sessionToken);
+      }
+
       setAdminUser(data.user);
       setAuthState('dashboard');
       fetchDashboardData();
@@ -268,10 +284,14 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
   const handleLogout = async () => {
     setLoading(true);
     try {
-      await fetch('/api/admin/logout', { method: 'POST' });
+      const token = localStorage.getItem('admin_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      await fetch('/api/admin/logout', { method: 'POST', headers });
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
+      localStorage.removeItem('admin_token');
       setAdminUser(null);
       setDashboardData(null);
       setPassword('');
@@ -408,12 +428,14 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                  Admin Email
+                  Admin Username or Email
                 </label>
                 <div className="relative">
                   <input
-                    type="email"
+                    type="text"
                     required
+                    autoCapitalize="none"
+                    autoCorrect="off"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="admin@happyjourneyholidays.com"
@@ -584,7 +606,7 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
                   ) : (
                     <>
                       <CheckCircle2 size={16} />
-                      <span>Confirm & Open Dashboard</span>
+                      <span>Verify & Activate 2FA</span>
                     </>
                   )}
                 </button>

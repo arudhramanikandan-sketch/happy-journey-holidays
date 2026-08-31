@@ -20,9 +20,8 @@ export function createWhatsAppLink(message?: string): string {
  * WhatsApp message for specific destination packages
  */
 export function createDestinationWhatsAppLink(destinationName: string, packageTitle?: string): string {
-  const text = packageTitle 
-    ? `Hello Happy Journey Holidays, I am interested in the "${packageTitle}" (${destinationName}) package. Please share the details and customized quotation.`
-    : `Hello Happy Journey Holidays, I am interested in the ${destinationName} holiday package. Please share the itinerary details and quotation.`;
+  const pkgName = packageTitle || `Discover ${destinationName}`;
+  const text = `Hello Happy Journey Holidays,\n\nI would like to enquire about the following tour package:\n\nPackage: ${pkgName}\nDestination: ${destinationName}\nTravel Date: \nNumber of Travellers: \n\nPlease share the itinerary, availability and quotation.`;
   return createWhatsAppLink(text);
 }
 

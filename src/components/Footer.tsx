@@ -201,10 +201,19 @@ export const Footer: React.FC<FooterProps> = ({ onRouteChange, onOpenQuoteModal 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
           <p>© 2026 Happy Journey Holidays. All Rights Reserved.</p>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3 text-[11px]">
             <span>Neelambur, Coimbatore, Tamil Nadu</span>
             <span>•</span>
-            <span className="text-slate-400">Conversion-Focused Travel Agency</span>
+            <span className="text-slate-500">Conversion-Focused Travel Agency</span>
+            <span>•</span>
+            <button
+              id="footer-admin-login-link"
+              onClick={() => handleNav('/admin')}
+              className="text-slate-600 hover:text-slate-400 transition-colors cursor-pointer"
+              aria-label="Admin Portal"
+            >
+              Admin
+            </button>
           </div>
         </div>
       </div>

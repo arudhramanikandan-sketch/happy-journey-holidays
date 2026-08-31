@@ -29,6 +29,7 @@ import {
   updateEnquiryStatus,
   deleteEnquiryRecord,
   resyncEnquiry,
+  normalizeStatus,
   EnquiryStatus,
   EnquiryRecord
 } from './server/enquiryStore.js';
@@ -538,6 +539,43 @@ async function startServer() {
     }
   });
 
+  // Track WhatsApp Direct button clicks as enquiries
+  app.post('/api/enquiries/whatsapp-click', async (req, res) => {
+    try {
+      const {
+        packageName,
+        destination,
+        customerName = 'WhatsApp Visitor',
+        phone = '+91 6374509488',
+        travelDate,
+        travelers
+      } = req.body;
+
+      const newRecord = await createNewCustomerEnquiry({
+        type: 'whatsapp_direct',
+        source: 'WhatsApp Direct',
+        fullName: customerName,
+        phone: phone,
+        destination: destination || packageName || 'General Enquiry',
+        packageName: packageName || destination,
+        travelDate,
+        travelers,
+        notes: `Customer clicked "WhatsApp Direct" button for ${packageName || destination || 'Holiday Package'}`
+      });
+
+      console.log(`[WhatsApp Direct Enquiry Logged] Reference: ${newRecord.enquiryReference} | Package: ${newRecord.packageName}`);
+
+      return res.status(201).json({
+        success: true,
+        referenceId: newRecord.enquiryReference,
+        data: newRecord
+      });
+    } catch (error: any) {
+      console.error('[Error Recording WhatsApp Click]:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // Public quick stats or health check for enquiries
   app.get('/api/enquiries', (req, res) => {
     const list = getAllEnquiries();
@@ -558,6 +596,10 @@ async function startServer() {
       const search = typeof req.query.search === 'string' ? req.query.search.trim().toLowerCase() : '';
       const statusFilter = typeof req.query.status === 'string' ? req.query.status : '';
       const categoryFilter = typeof req.query.category === 'string' ? req.query.category : '';
+      const sourceFilter = typeof req.query.source === 'string' ? req.query.source : '';
+      const dateFilter = typeof req.query.dateFilter === 'string' ? req.query.dateFilter : '';
+      const startDate = typeof req.query.startDate === 'string' ? req.query.startDate : '';
+      const endDate = typeof req.query.endDate === 'string' ? req.query.endDate : '';
 
       let filtered = all;
 
@@ -566,26 +608,63 @@ async function startServer() {
           item.customerName.toLowerCase().includes(search) ||
           item.phoneNumber.toLowerCase().includes(search) ||
           item.enquiryReference.toLowerCase().includes(search) ||
-          (item.email && item.email.toLowerCase().includes(search)) ||
-          (item.destination && item.destination.toLowerCase().includes(search))
+          (item.destination && item.destination.toLowerCase().includes(search)) ||
+          (item.packageName && item.packageName.toLowerCase().includes(search)) ||
+          (item.email && item.email.toLowerCase().includes(search))
         );
       }
 
       if (statusFilter && statusFilter !== 'All') {
-        filtered = filtered.filter(item => item.status === statusFilter);
+        const normalizedFilter = normalizeStatus(statusFilter);
+        filtered = filtered.filter(item => item.status === normalizedFilter);
       }
 
       if (categoryFilter && categoryFilter !== 'All') {
         filtered = filtered.filter(item => item.category === categoryFilter);
       }
 
+      if (sourceFilter && sourceFilter !== 'All') {
+        filtered = filtered.filter(item => (item.source || 'Website Enquiry') === sourceFilter);
+      }
+
+      // Date filtering
+      if (dateFilter && dateFilter !== 'All') {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const startOfYesterday = startOfToday - 86400000;
+        const sevenDaysAgo = startOfToday - 7 * 86400000;
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+        filtered = filtered.filter(item => {
+          const itemTime = new Date(item.createdAt).getTime();
+          if (dateFilter === 'Today') return itemTime >= startOfToday;
+          if (dateFilter === 'Yesterday') return itemTime >= startOfYesterday && itemTime < startOfToday;
+          if (dateFilter === 'Last 7 Days') return itemTime >= sevenDaysAgo;
+          if (dateFilter === 'This Month') return itemTime >= startOfMonth;
+          return true;
+        });
+      } else if (startDate || endDate) {
+        filtered = filtered.filter(item => {
+          const itemTime = new Date(item.createdAt).getTime();
+          if (startDate && itemTime < new Date(startDate).getTime()) return false;
+          if (endDate && itemTime > new Date(endDate + 'T23:59:59.999Z').getTime()) return false;
+          return true;
+        });
+      }
+
       const statusCounts = {
         total: all.length,
-        new: all.filter(e => e.status === 'New').length,
-        contacted: all.filter(e => e.status === 'Contacted').length,
-        inProgress: all.filter(e => e.status === 'In Progress').length,
-        completed: all.filter(e => e.status === 'Completed').length,
-        cancelled: all.filter(e => e.status === 'Cancelled').length
+        new: all.filter(e => e.status === 'NEW').length,
+        contacted: all.filter(e => e.status === 'CONTACTED').length,
+        quoteSent: all.filter(e => e.status === 'QUOTE SENT').length,
+        confirmed: all.filter(e => e.status === 'CONFIRMED').length,
+        lostCancelled: all.filter(e => e.status === 'LOST / CANCELLED').length,
+        closed: all.filter(e => e.status === 'CLOSED').length
+      };
+
+      const sourceCounts = {
+        website: all.filter(e => (e.source || 'Website Enquiry') === 'Website Enquiry').length,
+        whatsapp: all.filter(e => e.source === 'WhatsApp Direct').length
       };
 
       res.json({
@@ -593,6 +672,7 @@ async function startServer() {
         count: filtered.length,
         totalCount: all.length,
         statusCounts,
+        sourceCounts,
         googleSheetsConfig: getGoogleSheetsConfigStatus(),
         enquiries: filtered
       });
@@ -624,21 +704,21 @@ async function startServer() {
       const id = req.params.id;
       const { status } = req.body;
 
-      const validStatuses: EnquiryStatus[] = ['New', 'Contacted', 'In Progress', 'Completed', 'Cancelled'];
-      if (!validStatuses.includes(status)) {
-        return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+      if (!status) {
+        return res.status(400).json({ error: 'Status is required.' });
       }
 
-      const updated = await updateEnquiryStatus(id, status);
+      const normalizedStatus = normalizeStatus(status);
+      const updated = await updateEnquiryStatus(id, normalizedStatus);
       if (!updated) {
         return res.status(404).json({ error: 'Enquiry not found for status update.' });
       }
 
-      logSecurityEvent(`Admin changed enquiry status to "${status}": [${updated.enquiryReference}] (${updated.customerName})`, clientIp, 'SUCCESS', userAgent);
+      logSecurityEvent(`Admin changed enquiry status to "${normalizedStatus}": [${updated.enquiryReference}] (${updated.customerName})`, clientIp, 'SUCCESS', userAgent);
 
       res.json({
         success: true,
-        message: `Enquiry status updated to ${status}.`,
+        message: `Enquiry status updated to ${normalizedStatus}.`,
         enquiry: updated
       });
     } catch (err: any) {

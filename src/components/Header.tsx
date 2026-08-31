@@ -9,7 +9,8 @@ import {
   Plane, 
   Sparkles,
   ChevronRight,
-  Clock
+  Clock,
+  Lock
 } from 'lucide-react';
 import { PageRoute } from '../types';
 import { createWhatsAppLink, COMPANY_PHONE, COMPANY_EMAIL } from '../utils/whatsapp';
@@ -73,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-5">
             <a 
               href={`mailto:${COMPANY_EMAIL}`}
               className="flex items-center gap-1.5 text-slate-300 hover:text-white transition"
@@ -88,6 +89,18 @@ export const Header: React.FC<HeaderProps> = ({
               <Phone size={13} className="text-[#F27D26]" />
               <span>+91 {COMPANY_PHONE}</span>
             </a>
+
+            {/* Subtle Admin Login Entry Point */}
+            <span className="text-slate-700">|</span>
+            <button
+              id="header-admin-login-link"
+              onClick={() => handleNavClick('/admin')}
+              className="flex items-center gap-1 text-slate-400 hover:text-slate-200 transition text-[11px] px-2 py-0.5 rounded border border-slate-800 hover:border-slate-700 bg-slate-900/60 cursor-pointer"
+              title="Administrator Portal Login"
+            >
+              <Lock size={10} className="text-slate-400" />
+              <span>Admin Login</span>
+            </button>
           </div>
         </div>
       </div>
@@ -239,8 +252,16 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
-            <div className="pt-2 text-center text-[11px] text-slate-400">
-              📍 1/149, Ganesh Complex, Avinashi Rd, Neelambur, Coimbatore
+            <div className="pt-2 flex items-center justify-between text-[11px] text-slate-400">
+              <span>📍 Neelambur, Coimbatore</span>
+              <button
+                id="mobile-drawer-admin-login-link"
+                onClick={() => handleNavClick('/admin')}
+                className="flex items-center gap-1 text-slate-400 hover:text-slate-200 transition text-[11px] px-2 py-0.5 rounded border border-slate-800 bg-slate-900/60 cursor-pointer"
+              >
+                <Lock size={10} />
+                <span>Admin Login</span>
+              </button>
             </div>
           </div>
         )}

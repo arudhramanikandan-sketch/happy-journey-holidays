@@ -65,26 +65,28 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'package_quote',
-          fullName: formData.fullName,
-          phone: formData.phone,
-          email: formData.email,
-          destination: formData.destinationOrService,
+          source: 'Website Enquiry',
+          fullName: formData.fullName.trim(),
+          phone: formData.phone.trim(),
+          email: formData.email ? formData.email.trim() : undefined,
+          destination: formData.destinationOrService.trim(),
+          packageName: formData.destinationOrService.trim(),
           travelDate: formData.travelDate,
-          adults: parseInt(formData.travelers) || 2,
+          travelers: formData.travelers,
+          adults: formData.travelers.includes('1 Solo') ? 1 : 2,
           specialRequirements: formData.notes
         })
       });
 
       const data = await res.json();
-      if (res.ok && data.success) {
-        setSubmittedRef(data.referenceId || 'HJH-QUOTE');
+      if (res.ok && data.success && data.referenceId) {
+        setSubmittedRef(data.referenceId);
       } else {
-        // Fallback reference if offline or preview
-        setSubmittedRef('HJH-' + Math.floor(100000 + Math.random() * 900000));
+        setErrorMessage(data.error || 'Failed to record your enquiry. Please check your details and try again.');
       }
-    } catch (err) {
-      console.warn('Backend enquiry endpoint unreachable, using client ref', err);
-      setSubmittedRef('HJH-' + Math.floor(100000 + Math.random() * 900000));
+    } catch (err: any) {
+      console.error('Customer enquiry submission error:', err);
+      setErrorMessage('Unable to connect to the server. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
