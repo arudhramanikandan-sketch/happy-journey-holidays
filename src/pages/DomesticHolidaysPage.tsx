@@ -21,6 +21,7 @@ import { PageRoute, Destination, HolidayPackage } from '../types';
 import { DOMESTIC_DESTINATIONS, DOMESTIC_PACKAGES } from '../data/travelData';
 import { createDestinationWhatsAppLink, createWhatsAppLink } from '../utils/whatsapp';
 import { usePublicPackages } from '../utils/usePackages';
+import { SubpageBackKey } from '../components/SubpageBackKey';
 
 interface DomesticHolidaysPageProps {
   onNavigate: (route: PageRoute) => void;
@@ -103,6 +104,11 @@ export const DomesticHolidaysPage: React.FC<DomesticHolidaysPageProps> = ({
         <div className="absolute inset-0 bg-gradient-to-r from-[#000B18] via-[#001529]/95 to-[#000B18]/80 z-0" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SubpageBackKey 
+            onNavigate={onNavigate} 
+            currentPageName="Domestic Holidays" 
+          />
+
           <div className="inline-flex items-center gap-2 bg-[#001529] border border-[#002b54] px-3.5 py-1 rounded-full text-xs font-semibold text-[#F27D26] mb-4">
             <Compass size={14} className="text-[#F27D26]" />
             <span>Direct Departures & AC Cabs from Coimbatore / South India</span>
@@ -439,7 +445,7 @@ export const DomesticHolidaysPage: React.FC<DomesticHolidaysPageProps> = ({
       </section>
 
       {/* Bottom CTA Banner */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="bg-gradient-to-r from-[#001529] to-[#002447] rounded-3xl p-8 text-white text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl border border-[#002b54]">
           <div>
             <h3 className="font-heading font-extrabold text-2xl text-white">
@@ -458,6 +464,14 @@ export const DomesticHolidaysPage: React.FC<DomesticHolidaysPageProps> = ({
             <MessageCircle size={18} />
             <span>Chat on WhatsApp (+91 6374509488)</span>
           </a>
+        </div>
+
+        {/* Bottom Back Key */}
+        <div className="flex justify-center pt-2">
+          <SubpageBackKey 
+            onNavigate={onNavigate} 
+            label="Back to Home Page"
+          />
         </div>
       </section>
     </div>

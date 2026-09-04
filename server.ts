@@ -34,6 +34,16 @@ import {
   EnquiryRecord
 } from './server/enquiryStore.js';
 import { getGoogleSheetsConfigStatus } from './server/googleSheets.js';
+import { 
+  sendOtpToMobile, 
+  verifyMobileOtp, 
+  isPhoneVerifiedWithToken, 
+  validateMsg91AccessToken,
+  sendOtpToEmail,
+  verifyEmailOtp,
+  isEmailVerifiedWithToken,
+  getMsg91Status 
+} from './server/otpService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -473,6 +483,119 @@ async function startServer() {
   });
 
   // ==========================================
+  // CUSTOMER MOBILE OTP VERIFICATION
+  // ==========================================
+
+  // Step 1: Send OTP to customer's mobile number
+  app.post('/api/otp/send', async (req, res) => {
+    try {
+      const { phone, fullName } = req.body;
+      if (!phone || typeof phone !== 'string') {
+        return res.status(400).json({ error: 'Please provide a valid mobile number.' });
+      }
+
+      const result = await sendOtpToMobile(phone, fullName);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error || 'Failed to send OTP.' });
+      }
+
+      return res.json({
+        success: true,
+        message: `OTP sent successfully to ${result.maskedPhone}`,
+        phone: result.phone,
+        maskedPhone: result.maskedPhone,
+        otpCode: result.otpCode,
+        expiresInSeconds: result.expiresInSeconds,
+        msg91Configured: result.msg91Configured
+      });
+    } catch (err: any) {
+      console.error('[Send OTP Error]:', err);
+      return res.status(500).json({ error: 'Server error while generating OTP.' });
+    }
+  });
+
+  // Step 2: Verify customer entered OTP
+  app.post('/api/otp/verify', async (req, res) => {
+    try {
+      const { phone, otp } = req.body;
+      if (!phone || !otp) {
+        return res.status(400).json({ error: 'Mobile number and 6-digit OTP code are required.' });
+      }
+
+      const result = await verifyMobileOtp(phone, otp);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error || 'Invalid OTP code.' });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Mobile number verified successfully!',
+        phone: result.phone,
+        verifiedToken: result.verifiedToken
+      });
+    } catch (err: any) {
+      console.error('[Verify OTP Error]:', err);
+      return res.status(500).json({ error: 'Server error while verifying OTP.' });
+    }
+  });
+
+  // ==========================================
+  // CUSTOMER EMAIL OTP VERIFICATION
+  // ==========================================
+
+  // Step 1: Send OTP to customer's email address
+  app.post('/api/otp/email/send', async (req, res) => {
+    try {
+      const { email, fullName, destinationOrPackage } = req.body;
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ error: 'Please provide a valid email address.' });
+      }
+
+      const result = await sendOtpToEmail(email, fullName, destinationOrPackage);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error || 'Failed to send OTP to email.' });
+      }
+
+      return res.json({
+        success: true,
+        message: `Verification code sent to ${result.maskedEmail}`,
+        email: result.email,
+        maskedEmail: result.maskedEmail,
+        otpCode: result.otpCode,
+        expiresInSeconds: result.expiresInSeconds
+      });
+    } catch (err: any) {
+      console.error('[Send Email OTP Error]:', err);
+      return res.status(500).json({ error: 'Server error while generating email OTP.' });
+    }
+  });
+
+  // Step 2: Verify customer entered email OTP
+  app.post('/api/otp/email/verify', async (req, res) => {
+    try {
+      const { email, otp } = req.body;
+      if (!email || !otp) {
+        return res.status(400).json({ error: 'Email address and 6-digit OTP code are required.' });
+      }
+
+      const result = await verifyEmailOtp(email, otp);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error || 'Invalid OTP code.' });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Email address verified successfully!',
+        email: result.email,
+        verifiedToken: result.verifiedToken
+      });
+    } catch (err: any) {
+      console.error('[Verify Email OTP Error]:', err);
+      return res.status(500).json({ error: 'Server error while verifying email OTP.' });
+    }
+  });
+
+  // ==========================================
   // CUSTOMER ENQUIRY & GOOGLE SHEETS API (PHASE 3)
   // ==========================================
 
@@ -497,11 +620,35 @@ async function startServer() {
         departureCity,
         specialRequirements,
         message,
-        notes
+        notes,
+        verificationToken,
+        verifiedPhone,
+        verifiedEmail
       } = req.body;
 
       if (!fullName || !phone) {
         return res.status(400).json({ error: 'Customer Name and WhatsApp / Phone number are required.' });
+      }
+
+      // Check verification token (Email OTP or Mobile OTP token)
+      let isVerified = false;
+      if (verificationToken) {
+        if (email && isEmailVerifiedWithToken(email, verificationToken)) {
+          isVerified = true;
+        } else {
+          const tokenValidation = await validateMsg91AccessToken(verificationToken);
+          if (tokenValidation.valid) {
+            isVerified = true;
+          } else if (isPhoneVerifiedWithToken(phone, verificationToken)) {
+            isVerified = true;
+          }
+        }
+      } else if (verifiedPhone || verifiedEmail) {
+        isVerified = true;
+      }
+
+      if (!isVerified && process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ error: 'OTP verification is required to submit your enquiry.' });
       }
 
       const newRecord = await createNewCustomerEnquiry({
@@ -522,7 +669,8 @@ async function startServer() {
         departureCity,
         specialRequirements,
         message,
-        notes
+        notes,
+        phoneVerified: isVerified
       });
 
       console.log(`[Enquiry Processed] Reference: ${newRecord.enquiryReference} | Customer: ${newRecord.customerName} | Phone: ${newRecord.phoneNumber} | Sheet: ${newRecord.googleSheetStatus} | Email: ${newRecord.emailNotificationStatus}`);

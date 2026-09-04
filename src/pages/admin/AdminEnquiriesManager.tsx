@@ -709,24 +709,32 @@ export const AdminEnquiriesManager: React.FC = () => {
 
                       {/* Phone */}
                       <td className="py-3.5 px-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-1.5">
-                          <a
-                            href={`tel:${enq.phoneNumber}`}
-                            className="font-mono text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
-                            title="Call customer"
-                          >
-                            <Phone size={12} />
-                            <span>{enq.phoneNumber}</span>
-                          </a>
-                          <a
-                            href={waLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800 hover:bg-emerald-800 hover:text-white transition"
-                            title="Reply on WhatsApp"
-                          >
-                            <Share2 size={12} />
-                          </a>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={`tel:${enq.phoneNumber}`}
+                              className="font-mono text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1"
+                              title="Call customer"
+                            >
+                              <Phone size={12} />
+                              <span>{enq.phoneNumber}</span>
+                            </a>
+                            <a
+                              href={waLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800 hover:bg-emerald-800 hover:text-white transition"
+                              title="Reply on WhatsApp"
+                            >
+                              <Share2 size={12} />
+                            </a>
+                          </div>
+                          {enq.phoneVerified && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800/80 px-1.5 py-0.2 rounded w-max">
+                              <CheckCircle2 size={10} className="text-emerald-400" />
+                              <span>OTP Verified</span>
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -912,9 +920,17 @@ export const AdminEnquiriesManager: React.FC = () => {
 
                   <div>
                     <span className="text-xs text-slate-400 block">Phone Number / WhatsApp:</span>
-                    <a href={`tel:${activeEnquiry.phoneNumber}`} className="text-base font-mono font-bold text-emerald-400 hover:underline">
-                      {activeEnquiry.phoneNumber}
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <a href={`tel:${activeEnquiry.phoneNumber}`} className="text-base font-mono font-bold text-emerald-400 hover:underline">
+                        {activeEnquiry.phoneNumber}
+                      </a>
+                      {activeEnquiry.phoneVerified && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 size={11} className="text-emerald-400" />
+                          <span>OTP Verified</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div>

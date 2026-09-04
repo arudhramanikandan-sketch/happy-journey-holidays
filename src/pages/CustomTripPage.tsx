@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { CustomTripFormData, TripType, PageRoute } from '../types';
 import { createCustomTripWhatsAppLink, COMPANY_PHONE, COMPANY_EMAIL } from '../utils/whatsapp';
+import { EmailOtpVerificationModal } from '../components/EmailOtpVerificationModal';
+import { SubpageBackKey } from '../components/SubpageBackKey';
 
 interface CustomTripPageProps {
   onNavigate: (route: PageRoute) => void;
@@ -44,6 +46,7 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
   });
 
   const [loading, setLoading] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -66,7 +69,7 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
     'Need Best Budget Recommendation'
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -79,33 +82,61 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
       setErrorMsg('Please enter a valid 10-digit WhatsApp phone number.');
       return;
     }
+    if (!formData.email.trim()) {
+      setErrorMsg('Please enter your email address.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
     if (!formData.destination.trim()) {
       setErrorMsg('Please enter your desired destination.');
       return;
     }
+    if (!formData.departureCity.trim()) {
+      setErrorMsg('Please enter your departure city.');
+      return;
+    }
+    if (!formData.travelDate.trim()) {
+      setErrorMsg('Please select your tentative departure date.');
+      return;
+    }
 
+    // Open OTP Verification Modal before final submission
+    setShowOtpModal(true);
+  };
+
+  const handleOtpVerifiedSubmission = async (verificationToken: string) => {
     setLoading(true);
+    setErrorMsg('');
 
     try {
-      // POST to backend API
+      // POST to backend API with verified token
       const res = await fetch('/api/enquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'custom_trip',
-          ...formData
+          ...formData,
+          verificationToken,
+          verifiedEmail: true
         })
       });
 
       const result = await res.json();
       if (res.ok && result.success && result.referenceId) {
         setSubmittedRef(result.referenceId);
+        setShowOtpModal(false);
       } else {
         setErrorMsg(result.error || 'Failed to submit your custom trip plan. Please try again.');
+        setShowOtpModal(false);
       }
     } catch (err: any) {
       console.error('Custom trip submission error:', err);
       setErrorMsg('Unable to connect to the server. Please check your internet connection and try again.');
+      setShowOtpModal(false);
     } finally {
       setLoading(false);
       window.scrollTo({ top: 120, behavior: 'smooth' });
@@ -131,6 +162,11 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
         <div className="absolute inset-0 bg-gradient-to-r from-[#000B18] via-[#001529]/95 to-[#000B18]/80 z-0" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:text-left">
+          <SubpageBackKey 
+            onNavigate={onNavigate} 
+            currentPageName="Custom Trip Planner" 
+          />
+
           <div className="inline-flex items-center gap-2 bg-[#001529] border border-[#002b54] px-3.5 py-1 rounded-full text-xs font-semibold text-[#F27D26] mb-4">
             <Sparkles size={14} className="text-[#F27D26]" />
             <span>Tailor-Made Holidays from Coimbatore</span>
@@ -221,6 +257,13 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
               >
                 Plan Another Trip
               </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('/')}
+                className="text-xs text-[#F27D26] hover:text-[#ff9547] font-semibold underline cursor-pointer ml-4"
+              >
+                Back to Home Page
+              </button>
             </div>
           </div>
         ) : (
@@ -297,12 +340,13 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                    Departure City
+                    Departure City <span className="text-[#F27D26]">*</span>
                   </label>
                   <div className="relative">
                     <Plane size={16} className="absolute left-3.5 top-3.5 text-slate-500" />
                     <input
                       type="text"
+                      required
                       value={formData.departureCity}
                       onChange={(e) => setFormData({ ...formData, departureCity: e.target.value })}
                       placeholder="e.g. Coimbatore / Chennai / Bangalore..."
@@ -316,12 +360,13 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                    Tentative Departure Date
+                    Tentative Departure Date <span className="text-[#F27D26]">*</span>
                   </label>
                   <div className="relative">
                     <Calendar size={16} className="absolute left-3.5 top-3.5 text-slate-500" />
                     <input
                       type="date"
+                      required
                       value={formData.travelDate}
                       onChange={(e) => setFormData({ ...formData, travelDate: e.target.value })}
                       className="w-full pl-10 pr-3 py-2.5 text-xs sm:text-sm border border-[#002b54] rounded-xl focus:ring-2 focus:ring-[#F27D26] focus:outline-none bg-[#000e1f] text-white"
@@ -464,12 +509,13 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Email Address
+                      Email Address <span className="text-[#F27D26]">*</span>
                     </label>
                     <div className="relative">
                       <Mail size={16} className="absolute left-3 top-3 text-slate-500" />
                       <input
                         type="email"
+                        required
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         placeholder="name@example.com"
@@ -533,6 +579,16 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
           </div>
         )}
       </section>
+
+      {/* Email OTP Verification Dialog */}
+      <EmailOtpVerificationModal
+        isOpen={showOtpModal}
+        email={formData.email}
+        fullName={formData.fullName}
+        destinationOrPackage={formData.destination}
+        onClose={() => setShowOtpModal(false)}
+        onVerified={handleOtpVerifiedSubmission}
+      />
     </div>
   );
 };

@@ -360,7 +360,18 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
 
         <div className="flex items-center gap-3">
           {authState === 'dashboard' && adminUser ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={onNavigateHome}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#001f3f] text-slate-200 border border-[#003866] hover:bg-[#002d59] hover:text-white transition shadow-sm cursor-pointer"
+                title="Return to public website"
+              >
+                <ArrowLeft size={14} className="text-[#F27D26]" />
+                <span className="hidden sm:inline">Back to Website</span>
+                <span className="sm:hidden">Website</span>
+              </button>
+
               <div className="text-right hidden md:block">
                 <p className="text-xs font-semibold text-slate-200">{adminUser.email}</p>
                 <p className="text-[10px] text-emerald-400 font-medium flex items-center justify-end gap-1">
@@ -369,9 +380,10 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
                 </p>
               </div>
               <button
+                type="button"
                 onClick={handleLogout}
                 disabled={loading}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/40 text-rose-300 border border-rose-800/60 hover:bg-rose-900/50 hover:text-white transition shadow-sm"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/40 text-rose-300 border border-rose-800/60 hover:bg-rose-900/50 hover:text-white transition shadow-sm cursor-pointer"
                 title="Sign out of Admin Dashboard"
               >
                 <LogOut size={14} />
@@ -380,10 +392,11 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
             </div>
           ) : (
             <button
+              type="button"
               onClick={onNavigateHome}
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition px-2.5 py-1.5 rounded-lg hover:bg-slate-800/50"
+              className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white transition px-3 py-1.5 rounded-lg bg-[#001f3f] border border-[#003866] hover:bg-[#002d59] cursor-pointer"
             >
-              <ArrowLeft size={14} />
+              <ArrowLeft size={14} className="text-[#F27D26]" />
               <span>Back to Website</span>
             </button>
           )}

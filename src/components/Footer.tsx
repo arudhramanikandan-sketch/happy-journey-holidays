@@ -8,7 +8,8 @@ import {
   MessageCircle, 
   ShieldCheck, 
   ArrowRight,
-  Heart
+  Heart,
+  Youtube
 } from 'lucide-react';
 import { PageRoute } from '../types';
 import { 
@@ -183,6 +184,15 @@ export const Footer: React.FC<FooterProps> = ({ onRouteChange, onOpenQuoteModal 
                   aria-label="Instagram"
                 >
                   <span className="font-bold text-xs">ig</span>
+                </a>
+                <a
+                  href="https://youtube.com/@happyjourneyholidays-cbe?si=zVrrVmg_wVSXP3FK"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-lg bg-[#001f3f] hover:bg-red-600 flex items-center justify-center text-slate-300 hover:text-white transition border border-[#00386e]"
+                  aria-label="Happy Journey Holidays YouTube Channel"
+                >
+                  <Youtube size={16} />
                 </a>
                 <a
                   href={createWhatsAppLink()}

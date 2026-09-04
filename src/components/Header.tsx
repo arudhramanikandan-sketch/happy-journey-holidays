@@ -7,10 +7,10 @@ import {
   X, 
   MessageCircle, 
   Plane, 
-  Sparkles,
-  ChevronRight,
+  Sparkles, 
+  ChevronRight, 
   Clock,
-  Lock
+  ArrowLeft
 } from 'lucide-react';
 import { PageRoute } from '../types';
 import { createWhatsAppLink, COMPANY_PHONE, COMPANY_EMAIL } from '../utils/whatsapp';
@@ -89,18 +89,6 @@ export const Header: React.FC<HeaderProps> = ({
               <Phone size={13} className="text-[#F27D26]" />
               <span>+91 {COMPANY_PHONE}</span>
             </a>
-
-            {/* Subtle Admin Login Entry Point */}
-            <span className="text-slate-700">|</span>
-            <button
-              id="header-admin-login-link"
-              onClick={() => handleNavClick('/admin')}
-              className="flex items-center gap-1 text-slate-400 hover:text-slate-200 transition text-[11px] px-2 py-0.5 rounded border border-slate-800 hover:border-slate-700 bg-slate-900/60 cursor-pointer"
-              title="Administrator Portal Login"
-            >
-              <Lock size={10} className="text-slate-400" />
-              <span>Admin Login</span>
-            </button>
           </div>
         </div>
       </div>
@@ -113,15 +101,36 @@ export const Header: React.FC<HeaderProps> = ({
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          {/* Logo Brand */}
-          <button 
-            id="nav-logo-btn"
-            onClick={() => handleNavClick('/')}
-            className="flex items-center text-left group cursor-pointer focus:outline-none"
-            aria-label="Happy Journey Holidays Home"
-          >
-            <Logo size="md" />
-          </button>
+          {/* Logo Brand & Mobile Back Key */}
+          <div className="flex items-center">
+            {currentRoute !== '/' && (
+              <button 
+                type="button"
+                id="header-mobile-back-btn"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.history && window.history.length > 1) {
+                    window.history.back();
+                  } else {
+                    onRouteChange('/');
+                  }
+                }}
+                className="lg:hidden p-2 mr-2.5 text-slate-200 hover:text-white bg-[#001f3f] hover:bg-[#002d59] border border-[#003866] rounded-xl transition flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
+                aria-label="Go Back to Previous Page"
+                title="Go back"
+              >
+                <ArrowLeft size={16} className="text-[#F27D26]" />
+              </button>
+            )}
+
+            <button 
+              id="nav-logo-btn"
+              onClick={() => handleNavClick('/')}
+              className="flex items-center text-left group cursor-pointer focus:outline-none"
+              aria-label="Happy Journey Holidays Home"
+            >
+              <Logo size="md" />
+            </button>
+          </div>
 
           {/* Desktop Navigation Links */}
           <div className="hidden lg:flex items-center space-x-1 xl:space-x-2">
@@ -252,16 +261,8 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-between text-[11px] text-slate-400">
-              <span>📍 Neelambur, Coimbatore</span>
-              <button
-                id="mobile-drawer-admin-login-link"
-                onClick={() => handleNavClick('/admin')}
-                className="flex items-center gap-1 text-slate-400 hover:text-slate-200 transition text-[11px] px-2 py-0.5 rounded border border-slate-800 bg-slate-900/60 cursor-pointer"
-              >
-                <Lock size={10} />
-                <span>Admin Login</span>
-              </button>
+            <div className="pt-2 flex items-center justify-center text-[11px] text-slate-400">
+              <span>📍 Neelambur, Coimbatore, Tamil Nadu</span>
             </div>
           </div>
         )}

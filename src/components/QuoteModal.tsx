@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { QuoteRequestData } from '../types';
 import { createQuickQuoteWhatsAppLink, COMPANY_PHONE } from '../utils/whatsapp';
+import { EmailOtpVerificationModal } from './EmailOtpVerificationModal';
 
 interface QuoteModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   });
 
   const [loading, setLoading] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -49,16 +51,35 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
-    if (!formData.fullName.trim() || !formData.phone.trim()) {
-      setErrorMessage('Please provide your name and WhatsApp number.');
+    if (!formData.fullName.trim()) {
+      setErrorMessage('Please provide your full name.');
+      return;
+    }
+    if (!formData.phone.trim() || formData.phone.length < 10) {
+      setErrorMessage('Please provide a valid 10-digit WhatsApp / mobile number.');
+      return;
+    }
+    if (!formData.email.trim()) {
+      setErrorMessage('Please provide your email address.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      setErrorMessage('Please provide a valid email address.');
       return;
     }
 
+    // Open OTP modal before final submission
+    setShowOtpModal(true);
+  };
+
+  const handleOtpVerified = async (verificationToken: string) => {
     setLoading(true);
+    setErrorMessage('');
     try {
       const res = await fetch('/api/enquiries', {
         method: 'POST',
@@ -74,19 +95,24 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
           travelDate: formData.travelDate,
           travelers: formData.travelers,
           adults: formData.travelers.includes('1 Solo') ? 1 : 2,
-          specialRequirements: formData.notes
+          specialRequirements: formData.notes,
+          verificationToken,
+          verifiedEmail: true
         })
       });
 
       const data = await res.json();
       if (res.ok && data.success && data.referenceId) {
         setSubmittedRef(data.referenceId);
+        setShowOtpModal(false);
       } else {
         setErrorMessage(data.error || 'Failed to record your enquiry. Please check your details and try again.');
+        setShowOtpModal(false);
       }
     } catch (err: any) {
       console.error('Customer enquiry submission error:', err);
       setErrorMessage('Unable to connect to the server. Please check your connection and try again.');
+      setShowOtpModal(false);
     } finally {
       setLoading(false);
     }
@@ -284,15 +310,16 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                 </div>
               </div>
 
-              {/* Email (Optional) */}
+              {/* Email Address */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Email Address <span className="text-slate-500 text-[10px] font-normal">(Optional for quote PDF)</span>
+                  Email Address <span className="text-[#F27D26]">*</span>
                 </label>
                 <div className="relative">
                   <Mail size={16} className="absolute left-3 top-3 text-slate-500" />
                   <input
                     type="email"
+                    required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="name@example.com"
@@ -353,6 +380,16 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Email OTP Verification Modal */}
+      <EmailOtpVerificationModal
+        isOpen={showOtpModal}
+        email={formData.email}
+        fullName={formData.fullName}
+        destinationOrPackage={formData.destinationOrService}
+        onClose={() => setShowOtpModal(false)}
+        onVerified={handleOtpVerified}
+      />
     </div>
   );
 };

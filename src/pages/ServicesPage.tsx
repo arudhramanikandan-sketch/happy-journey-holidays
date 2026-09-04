@@ -18,6 +18,7 @@ import {
 import { PageRoute } from '../types';
 import { TRAVEL_SERVICES } from '../data/travelData';
 import { createServiceWhatsAppLink, createWhatsAppLink, COMPANY_PHONE } from '../utils/whatsapp';
+import { SubpageBackKey } from '../components/SubpageBackKey';
 
 interface ServicesPageProps {
   onNavigate: (route: PageRoute) => void;
@@ -63,6 +64,11 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
         <div className="absolute inset-0 bg-gradient-to-r from-[#000B18] via-[#001529]/95 to-[#000B18]/80 z-0" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:text-left">
+          <SubpageBackKey 
+            onNavigate={onNavigate} 
+            currentPageName="Travel Services" 
+          />
+
           <div className="inline-flex items-center gap-2 bg-[#001529] border border-[#002b54] px-3.5 py-1 rounded-full text-xs font-semibold text-[#F27D26] mb-4">
             <Sparkles size={14} className="text-[#F27D26]" />
             <span>Complete End-to-End Travel Services in Coimbatore</span>
@@ -174,7 +180,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
       </section>
 
       {/* Support hotline */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="bg-[#001529] text-white rounded-3xl p-8 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl border border-[#002b54]">
           <div className="space-y-2">
             <h3 className="font-heading font-extrabold text-xl sm:text-2xl text-white">
@@ -192,6 +198,14 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
               Call +91 {COMPANY_PHONE}
             </a>
           </div>
+        </div>
+
+        {/* Bottom Back Key */}
+        <div className="flex justify-center pt-2">
+          <SubpageBackKey 
+            onNavigate={onNavigate} 
+            label="Back to Home Page"
+          />
         </div>
       </section>
     </div>

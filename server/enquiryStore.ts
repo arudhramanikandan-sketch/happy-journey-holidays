@@ -49,6 +49,7 @@ export interface EnquiryRecord {
   departureCity?: string;
   specialRequirements?: string;
   customerMessage?: string;
+  phoneVerified?: boolean;
   status: EnquiryStatus;
   createdAt: string; // ISO
   updatedAt: string; // ISO
@@ -173,6 +174,7 @@ export interface CreateEnquiryInput {
   specialRequirements?: string;
   message?: string;
   notes?: string;
+  phoneVerified?: boolean;
 }
 
 /**
@@ -306,6 +308,7 @@ export async function createNewCustomerEnquiry(input: CreateEnquiryInput): Promi
     departureCity: input.departureCity,
     specialRequirements: input.specialRequirements || input.notes || input.message || '',
     customerMessage: combinedMessage || (input.type === 'whatsapp_direct' ? 'WhatsApp Direct Click' : 'Direct inquiry from website'),
+    phoneVerified: Boolean(input.phoneVerified),
     status: 'NEW',
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),

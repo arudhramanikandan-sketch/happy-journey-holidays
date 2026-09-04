@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { PageRoute } from '../types';
 import { COMPANY_NAME, COMPANY_ADDRESS, COMPANY_PHONE, createWhatsAppLink } from '../utils/whatsapp';
+import { SubpageBackKey } from '../components/SubpageBackKey';
 
 interface AboutPageProps {
   onNavigate: (route: PageRoute) => void;
@@ -35,6 +36,11 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onOpenQuoteMod
         <div className="absolute inset-0 bg-gradient-to-r from-[#000B18] via-[#001529]/95 to-[#000B18]/80 z-0" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center sm:text-left">
+          <SubpageBackKey 
+            onNavigate={onNavigate} 
+            currentPageName="About Us" 
+          />
+
           <div className="inline-flex items-center gap-2 bg-[#001529] border border-[#002b54] px-3.5 py-1 rounded-full text-xs font-semibold text-[#F27D26] mb-4">
             <Heart size={14} className="text-[#F27D26]" />
             <span>Passionate Tour Operator in Coimbatore</span>
@@ -203,6 +209,14 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onNavigate, onOpenQuoteMod
               <span>WhatsApp Us</span>
             </a>
           </div>
+        </div>
+
+        {/* Bottom Back Key */}
+        <div className="flex justify-center pt-6">
+          <SubpageBackKey 
+            onNavigate={onNavigate} 
+            label="Back to Home Page"
+          />
         </div>
       </section>
     </div>
