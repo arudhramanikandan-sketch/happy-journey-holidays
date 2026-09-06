@@ -1,5 +1,3 @@
-import nodemailer from 'nodemailer';
-
 export interface EmailEnquiryPayload {
   enquiryReference: string;
   customerName: string;
@@ -21,29 +19,71 @@ export interface EmailEnquiryPayload {
 const DEFAULT_NOTIFICATION_RECIPIENT = 'happyjourneyholidayscbe@gmail.com';
 
 /**
- * Creates a nodemailer transporter using configured environment credentials
- * (SMTP or Gmail App Password)
+ * Sends an email using Brevo (Sendinblue) Transactional REST API v3
+ * Free tier: 300 free emails/day.
+ * Works over HTTPS (port 443), avoiding any port restrictions in cloud environments.
  */
-function createMailTransporter() {
-  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
-  const user = process.env.SMTP_USER || process.env.NOTIFICATION_EMAIL || DEFAULT_NOTIFICATION_RECIPIENT;
-  const pass = process.env.SMTP_PASS;
-
-  if (!pass) {
-    return null;
+async function sendViaBrevo(options: {
+  toEmail: string;
+  toName?: string;
+  subject: string;
+  htmlContent: string;
+  textContent?: string;
+}): Promise<{ sent: boolean; messageId?: string; error?: string }> {
+  const brevoApiKey = process.env.BREVO_API_KEY?.trim();
+  if (!brevoApiKey) {
+    return { sent: false, error: 'BREVO_API_KEY is not configured.' };
   }
 
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: {
-      user,
-      pass
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || DEFAULT_NOTIFICATION_RECIPIENT;
+  const senderName = process.env.BREVO_SENDER_NAME || 'Happy Journey Holidays';
+
+  try {
+    const payload = {
+      sender: {
+        name: senderName,
+        email: senderEmail
+      },
+      to: [
+        {
+          email: options.toEmail.trim(),
+          name: options.toName || options.toEmail.split('@')[0]
+        }
+      ],
+      replyTo: {
+        name: senderName,
+        email: senderEmail
+      },
+      subject: options.subject,
+      htmlContent: options.htmlContent,
+      textContent: options.textContent || undefined
+    };
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': brevoApiKey
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const responseData = (await response.json().catch(() => ({}))) as any;
+
+    if (response.ok && (response.status === 200 || response.status === 201)) {
+      const messageId = responseData?.messageId || 'brevo-dispatched';
+      console.log(`[Brevo Email Engine] ✅ Successfully delivered to ${options.toEmail} (MessageId: ${messageId})`);
+      return { sent: true, messageId };
+    } else {
+      const errorMsg = responseData?.message || `Brevo returned HTTP ${response.status}`;
+      console.error(`[Brevo Email Engine Error]: ${errorMsg}`);
+      return { sent: false, error: errorMsg };
     }
-  });
+  } catch (err: any) {
+    console.error(`[Brevo Email Engine Network Exception]:`, err.message);
+    return { sent: false, error: err.message };
+  }
 }
 
 /**
@@ -56,7 +96,6 @@ export async function sendOtpVerificationEmail(
   destinationOrPackage?: string
 ): Promise<{ success: boolean; message: string }> {
   const recipient = customerEmail.trim();
-  const transporter = createMailTransporter();
 
   const subject = `Your OTP for Trip Enquiry: ${otpCode} - Happy Journey Holidays`;
 
@@ -127,38 +166,35 @@ Avinashi Road, Neelambur, Coimbatore
 Phone: +91 94894 88849
   `;
 
-  if (!transporter) {
-    console.log(`[Email OTP Engine] (SMTP not configured) Generated OTP code ${otpCode} for email ${recipient}`);
-    return {
-      success: true,
-      message: `OTP email simulation logged for ${recipient}. To send live emails, set SMTP_PASS in environment.`
-    };
-  }
-
-  try {
-    const sender = process.env.SMTP_FROM || `"Happy Journey Holidays" <${process.env.SMTP_USER || DEFAULT_NOTIFICATION_RECIPIENT}>`;
-    await transporter.sendMail({
-      from: sender,
-      to: recipient,
+  // Dispatch via Brevo Transactional Email API if configured
+  if (process.env.BREVO_API_KEY) {
+    const brevoResult = await sendViaBrevo({
+      toEmail: recipient,
+      toName: customerName,
       subject,
-      text: textContent,
-      html: htmlContent
+      htmlContent,
+      textContent
     });
 
-    console.log(`[Email OTP Engine] ✅ OTP ${otpCode} successfully sent to ${recipient}`);
+    if (brevoResult.sent) {
+      return {
+        success: true,
+        message: `OTP sent to ${recipient} via Brevo`
+      };
+    }
+    console.error(`[Email OTP Engine] Brevo delivery failed: ${brevoResult.error}`);
     return {
-      success: true,
-      message: `OTP sent to ${recipient}`
-    };
-  } catch (err: any) {
-    console.error('[Email OTP Error]:', err.message);
-    // If SMTP fails, still log to console so testing is not blocked
-    console.log(`[Email OTP Fallback] Generated code ${otpCode} for ${recipient}`);
-    return {
-      success: true,
-      message: `OTP generated for ${recipient}`
+      success: false,
+      message: `Failed to dispatch OTP email: ${brevoResult.error}`
     };
   }
+
+  // If BREVO_API_KEY is not configured, log generated OTP for testing
+  console.log(`[Email OTP Engine] (BREVO_API_KEY not configured) Generated OTP code ${otpCode} for email ${recipient}`);
+  return {
+    success: true,
+    message: `OTP email simulation logged for ${recipient}. To send live emails, set BREVO_API_KEY in environment.`
+  };
 }
 
 /**
@@ -166,7 +202,6 @@ Phone: +91 94894 88849
  */
 export async function sendEnquiryNotificationEmail(payload: EmailEnquiryPayload): Promise<{ success: boolean; message: string }> {
   const recipient = process.env.NOTIFICATION_EMAIL || DEFAULT_NOTIFICATION_RECIPIENT;
-  const transporter = createMailTransporter();
 
   const cleanPhone = payload.phoneNumber.replace(/[^0-9]/g, '');
   const waPhone = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
@@ -305,34 +340,34 @@ WhatsApp Customer: ${whatsappUrl}
 --------------------------------------------------
 `;
 
-  if (!transporter) {
-    console.log(`[Email Notification Logged] Real email to ${recipient} queued: Enquiry ${payload.enquiryReference} (${payload.customerName})`);
-    return {
-      success: true,
-      message: `Email notification logged for ${recipient}. To send live SMTP emails, set SMTP_PASS in environment.`
-    };
-  }
-
-  try {
-    const sender = process.env.SMTP_FROM || `"Happy Journey Holidays" <${process.env.SMTP_USER || recipient}>`;
-    await transporter.sendMail({
-      from: sender,
-      to: recipient,
+  // Dispatch via Brevo Transactional Email API if configured
+  if (process.env.BREVO_API_KEY) {
+    const brevoResult = await sendViaBrevo({
+      toEmail: recipient,
+      toName: 'Happy Journey Holidays Team',
       subject,
-      text: textContent,
-      html: htmlContent
+      htmlContent,
+      textContent
     });
 
-    console.log(`[Email Notification Sent] Real email successfully delivered to ${recipient} for Enquiry ${payload.enquiryReference}`);
-    return {
-      success: true,
-      message: `Notification email dispatched to ${recipient}`
-    };
-  } catch (err: any) {
-    console.error('[Email Notification Error]:', err.message);
+    if (brevoResult.sent) {
+      console.log(`[Email Notification Sent] Real email successfully delivered to ${recipient} via Brevo for Enquiry ${payload.enquiryReference}`);
+      return {
+        success: true,
+        message: `Notification email dispatched to ${recipient} via Brevo`
+      };
+    }
+    console.error(`[Email Notification Error] Brevo delivery failed: ${brevoResult.error}`);
     return {
       success: false,
-      message: `Failed to deliver email: ${err.message}`
+      message: `Failed to deliver email: ${brevoResult.error}`
     };
   }
+
+  // If BREVO_API_KEY is not configured, log enquiry notification
+  console.log(`[Email Notification Logged] Real email to ${recipient} queued: Enquiry ${payload.enquiryReference} (${payload.customerName})`);
+  return {
+    success: true,
+    message: `Email notification logged for ${recipient}. To send live emails, set BREVO_API_KEY in environment.`
+  };
 }

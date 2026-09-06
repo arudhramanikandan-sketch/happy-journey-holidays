@@ -119,8 +119,12 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   };
 
   const handleWhatsAppDirect = () => {
-    const waUrl = createQuickQuoteWhatsAppLink(formData, submittedRef || undefined);
-    window.open(waUrl, '_blank', 'noopener,noreferrer');
+    try {
+      const waUrl = createQuickQuoteWhatsAppLink(formData, submittedRef || undefined);
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      console.warn('Could not open WhatsApp popup:', err);
+    }
   };
 
   const resetAndClose = () => {

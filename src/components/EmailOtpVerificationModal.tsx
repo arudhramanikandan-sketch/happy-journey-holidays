@@ -84,7 +84,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
         setMaskedEmail(cleanEmail);
       }
 
-      // 1. Dispatch via Server API (MSG91 Email & SMTP delivery)
+      // 1. Dispatch via Server API (Brevo Email & MSG91)
       const res = await fetch('/api/otp/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -286,7 +286,9 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
                     {digits.map((digit, idx) => (
                       <input
                         key={idx}
-                        ref={(el) => (inputRefs.current[idx] = el)}
+                        ref={(el) => {
+                          inputRefs.current[idx] = el;
+                        }}
                         type="text"
                         inputMode="numeric"
                         pattern="[0-9]*"

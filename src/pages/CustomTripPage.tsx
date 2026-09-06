@@ -144,8 +144,12 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
   };
 
   const handleWhatsAppDispatch = () => {
-    const waUrl = createCustomTripWhatsAppLink(formData, submittedRef || undefined);
-    window.open(waUrl, '_blank', 'noopener,noreferrer');
+    try {
+      const waUrl = createCustomTripWhatsAppLink(formData, submittedRef || undefined);
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      console.warn('Could not open WhatsApp popup:', err);
+    }
   };
 
   return (

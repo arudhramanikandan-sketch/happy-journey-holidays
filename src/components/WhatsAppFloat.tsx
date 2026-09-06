@@ -14,7 +14,11 @@ export const WhatsAppFloat: React.FC<WhatsAppFloatProps> = ({ currentDestination
     : 'Hello Happy Journey Holidays, I would like to enquire about a holiday package.';
 
   const handleOpenWhatsApp = (customMsg?: string) => {
-    window.open(createWhatsAppLink(customMsg || message), '_blank', 'noopener,noreferrer');
+    try {
+      window.open(createWhatsAppLink(customMsg || message), '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      console.warn('Could not open WhatsApp popup:', err);
+    }
     setIsOpen(false);
   };
 

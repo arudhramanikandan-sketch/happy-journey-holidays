@@ -516,7 +516,7 @@ export async function sendOtpToEmail(
       maskedEmail: rawEmail,
       otpCode: '',
       expiresInSeconds: 0,
-      msg91Configured: Boolean(process.env.MSG91_AUTH_KEY),
+      msg91Configured: Boolean(process.env.MSG91_AUTH_KEY || process.env.BREVO_API_KEY),
       error: 'Please enter a valid email address.'
     };
   }
@@ -532,7 +532,7 @@ export async function sendOtpToEmail(
       maskedEmail: maskEmail(email),
       otpCode: existing.otp,
       expiresInSeconds: Math.ceil((existing.expiresAt - now) / 1000),
-      msg91Configured: Boolean(process.env.MSG91_AUTH_KEY),
+      msg91Configured: Boolean(process.env.MSG91_AUTH_KEY || process.env.BREVO_API_KEY),
       error: `Please wait ${waitSec}s before requesting a new email OTP.`
     };
   }
@@ -545,7 +545,7 @@ export async function sendOtpToEmail(
   // 1. Dispatch via MSG91 Email API / Widget
   await sendMsg91EmailOtpDispatch(email, otpCode, fullName);
 
-  // 2. Dispatch via SMTP HTML Email Service
+  // 2. Dispatch via Brevo REST API
   await sendOtpVerificationEmail(email, fullName || 'Valued Traveller', otpCode, destinationOrPackage);
 
   emailOtpStore.set(email, {
@@ -558,7 +558,7 @@ export async function sendOtpToEmail(
     verified: false
   });
 
-  console.log(`[MSG91 Email OTP Engine] Active OTP for ${email} (${fullName || 'Customer'}): ${otpCode} (Valid for 5 mins)`);
+  console.log(`[Email OTP Engine] Active OTP for ${email} (${fullName || 'Customer'}): ${otpCode} (Valid for 5 mins)`);
 
   return {
     success: true,
@@ -566,7 +566,7 @@ export async function sendOtpToEmail(
     maskedEmail: maskEmail(email),
     otpCode,
     expiresInSeconds,
-    msg91Configured: Boolean(process.env.MSG91_AUTH_KEY)
+    msg91Configured: Boolean(process.env.MSG91_AUTH_KEY || process.env.BREVO_API_KEY)
   };
 }
 

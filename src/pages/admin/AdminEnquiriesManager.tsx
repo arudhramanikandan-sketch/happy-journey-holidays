@@ -67,6 +67,8 @@ export interface AdminEnquiry {
   googleSheetStatus: 'synced' | 'pending' | 'failed' | 'not_configured';
   googleSheetError?: string;
   emailNotificationStatus: 'sent' | 'pending' | 'failed' | 'logged';
+  phoneVerified?: boolean;
+  verifiedEmail?: boolean;
 }
 
 interface StatusCounts {
