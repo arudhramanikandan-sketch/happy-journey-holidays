@@ -521,19 +521,19 @@ export async function sendOtpToEmail(
     };
   }
 
-  // Rate limiting / cooldown check (15 seconds)
+  // Rate limiting / idempotent handling:
+  // If an OTP was already generated within the last 30 seconds, reuse it and return success
+  // so mobile network retries or double taps do not show error or overwrite the code sent to user
   const existing = emailOtpStore.get(email);
   const now = Date.now();
-  if (existing && now - existing.createdAt < 15000) {
-    const waitSec = Math.ceil((15000 - (now - existing.createdAt)) / 1000);
+  if (existing && (now - existing.createdAt < 30000) && (now < existing.expiresAt)) {
     return {
-      success: false,
+      success: true,
       email,
       maskedEmail: maskEmail(email),
       otpCode: existing.otp,
       expiresInSeconds: Math.ceil((existing.expiresAt - now) / 1000),
-      msg91Configured: Boolean(process.env.MSG91_AUTH_KEY || process.env.BREVO_API_KEY),
-      error: `Please wait ${waitSec}s before requesting a new email OTP.`
+      msg91Configured: Boolean(process.env.MSG91_AUTH_KEY || process.env.BREVO_API_KEY)
     };
   }
 
@@ -542,12 +542,7 @@ export async function sendOtpToEmail(
   const expiresInSeconds = 300; // 5 minutes
   const expiresAt = now + expiresInSeconds * 1000;
 
-  // 1. Dispatch via MSG91 Email API / Widget
-  await sendMsg91EmailOtpDispatch(email, otpCode, fullName);
-
-  // 2. Dispatch via Brevo REST API
-  await sendOtpVerificationEmail(email, fullName || 'Valued Traveller', otpCode, destinationOrPackage);
-
+  // Immediately store OTP in memory to prevent race conditions
   emailOtpStore.set(email, {
     email,
     fullName: fullName?.trim(),
@@ -557,6 +552,16 @@ export async function sendOtpToEmail(
     createdAt: now,
     verified: false
   });
+
+  // 1. Dispatch via Brevo REST API (fast, reliable primary transactional email engine)
+  try {
+    await sendOtpVerificationEmail(email, fullName || 'Valued Traveller', otpCode, destinationOrPackage);
+  } catch (err) {
+    console.warn('[Email OTP Engine] Brevo send error:', err);
+  }
+
+  // 2. Non-blocking auxiliary dispatch via MSG91 (runs in background without stalling response)
+  sendMsg91EmailOtpDispatch(email, otpCode, fullName).catch(() => {});
 
   console.log(`[Email OTP Engine] Active OTP for ${email} (${fullName || 'Customer'}): ${otpCode} (Valid for 5 mins)`);
 

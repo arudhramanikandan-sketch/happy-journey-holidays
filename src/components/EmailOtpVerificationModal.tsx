@@ -37,15 +37,23 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const hasRequestedRef = useRef<boolean>(false);
+  const isSendingRef = useRef<boolean>(false);
 
-  // Trigger send OTP to Email when opened
+  // Trigger send OTP to Email once when opened
   useEffect(() => {
     if (isOpen && email) {
-      setDigits(['', '', '', '', '', '']);
-      setErrorMessage('');
-      setIsSuccess(false);
-      setResendCountdown(0);
-      handleSendEmailOtp();
+      if (!hasRequestedRef.current) {
+        hasRequestedRef.current = true;
+        setDigits(['', '', '', '', '', '']);
+        setErrorMessage('');
+        setIsSuccess(false);
+        setResendCountdown(0);
+        handleSendEmailOtp(false);
+      }
+    } else if (!isOpen) {
+      hasRequestedRef.current = false;
+      isSendingRef.current = false;
     }
   }, [isOpen, email]);
 
@@ -61,55 +69,82 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
   // Auto-focus first input box after modal opens
   useEffect(() => {
     if (isOpen && !isSuccess) {
-      setTimeout(() => {
-        inputRefs.current[0]?.focus();
-      }, 200);
+      const timer = setTimeout(() => {
+        try {
+          inputRefs.current[0]?.focus({ preventScroll: true });
+        } catch {
+          inputRefs.current[0]?.focus();
+        }
+      }, 250);
+      return () => clearTimeout(timer);
     }
   }, [isOpen, isSuccess]);
 
   if (!isOpen) return null;
 
-  const handleSendEmailOtp = async () => {
+  const handleSendEmailOtp = async (isManualResend: boolean = false) => {
+    if (isSendingRef.current) return;
+    isSendingRef.current = true;
     setLoadingSend(true);
     setErrorMessage('');
-    try {
-      // Mask email for display
-      const cleanEmail = email.trim().toLowerCase();
-      const parts = cleanEmail.split('@');
-      if (parts.length === 2) {
-        const u = parts[0];
-        const masked = u.length <= 2 ? `${u.charAt(0)}•••@${parts[1]}` : `${u.slice(0, 2)}••••${u.slice(-1)}@${parts[1]}`;
-        setMaskedEmail(masked);
-      } else {
-        setMaskedEmail(cleanEmail);
-      }
 
-      // 1. Dispatch via Server API (Brevo Email)
+    // Pre-calculate masked email for immediate reassurance
+    const cleanEmail = email.trim().toLowerCase();
+    const parts = cleanEmail.split('@');
+    if (parts.length === 2) {
+      const u = parts[0];
+      const masked = u.length <= 2 ? `${u.charAt(0)}•••@${parts[1]}` : `${u.slice(0, 2)}••••${u.slice(-1)}@${parts[1]}`;
+      setMaskedEmail(masked);
+    } else {
+      setMaskedEmail(cleanEmail);
+    }
+
+    try {
+      // 1. Dispatch via Server API (with keepalive to prevent mobile app-switch cancellations)
+      const controller = new AbortController();
+      const abortTimer = setTimeout(() => controller.abort(), 12000);
+
       const res = await fetch('/api/otp/email/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
           email: cleanEmail,
           fullName,
           destinationOrPackage
-        })
+        }),
+        signal: controller.signal,
+        keepalive: true
       });
+      clearTimeout(abortTimer);
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {
         setResendCountdown(30);
         if (data.maskedEmail) {
           setMaskedEmail(data.maskedEmail);
         }
+        setErrorMessage('');
       } else {
         setResendCountdown(0);
         setErrorMessage(data.error || 'Failed to send OTP to your email address.');
       }
     } catch (err: any) {
       console.warn('[Email OTP Note]:', err);
+      // On mobile devices, switching to mail app or cellular delay can interrupt client fetch handshake
+      // even after the server has successfully dispatched the email OTP.
       setResendCountdown(0);
-      setErrorMessage('Network error while requesting verification code.');
+      if (!isManualResend) {
+        setErrorMessage(
+          'Notice: If you have already received the 6-digit code in your email inbox, please enter it below. Otherwise, tap "Resend Code".'
+        );
+      } else {
+        setErrorMessage('Connection took longer than expected. If code arrived in your email, please enter it below, or tap Resend again.');
+      }
     } finally {
+      isSendingRef.current = false;
       setLoadingSend(false);
     }
   };
@@ -127,6 +162,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
         newDigits[i] = pastedDigits[i] || '';
       }
       setDigits(newDigits);
+      setErrorMessage('');
       const nextFocus = Math.min(pastedDigits.length, 5);
       inputRefs.current[nextFocus]?.focus();
       return;
@@ -157,6 +193,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
         newDigits[i] = pastedData[i] || '';
       }
       setDigits(newDigits);
+      setErrorMessage('');
       const nextFocus = Math.min(pastedData.length, 5);
       inputRefs.current[nextFocus]?.focus();
     }
@@ -174,17 +211,26 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
     setErrorMessage('');
 
     try {
-      // Verify via Server API (validates Brevo generated OTP)
+      // Verify via Server API with keepalive and timeout protection
+      const controller = new AbortController();
+      const abortTimer = setTimeout(() => controller.abort(), 12000);
+
       const res = await fetch('/api/otp/email/verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json' 
+        },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           otp: code
-        })
+        }),
+        signal: controller.signal,
+        keepalive: true
       });
+      clearTimeout(abortTimer);
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.success && data.verifiedToken) {
         setIsSuccess(true);
@@ -196,7 +242,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
       }
     } catch (err: any) {
       console.warn('[Email OTP Verification Note]:', err);
-      setErrorMessage('Failed to verify code. Please check your internet connection.');
+      setErrorMessage('Failed to verify code. Please check your internet connection and try again.');
     } finally {
       setLoadingVerify(false);
     }
@@ -214,6 +260,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
     >
       <div 
         id="email-otp-verification-dialog"
+        onClick={(e) => e.stopPropagation()}
         className="bg-[#001529] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-[#002b54] animate-in zoom-in-95 duration-200 text-white"
       >
         {/* Header */}
@@ -292,6 +339,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
                         type="text"
                         inputMode="numeric"
                         pattern="[0-9]*"
+                        autoComplete="one-time-code"
                         maxLength={1}
                         value={digit}
                         onChange={(e) => handleDigitChange(idx, e.target.value)}
@@ -319,7 +367,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
 
                   <button
                     type="button"
-                    onClick={handleSendEmailOtp}
+                    onClick={() => handleSendEmailOtp(true)}
                     disabled={resendCountdown > 0 || loadingSend}
                     id="resend-email-otp-btn"
                     className="inline-flex items-center gap-1 text-[#F27D26] hover:text-[#d96c1e] disabled:text-slate-500 font-semibold cursor-pointer disabled:cursor-not-allowed"

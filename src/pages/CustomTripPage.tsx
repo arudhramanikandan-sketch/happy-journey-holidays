@@ -82,14 +82,18 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
       setErrorMsg('Please enter a valid 10-digit WhatsApp phone number.');
       return;
     }
-    if (!formData.email.trim()) {
+    const cleanEmail = formData.email.trim().toLowerCase();
+    if (!cleanEmail) {
       setErrorMsg('Please enter your email address.');
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email.trim())) {
+    if (!emailRegex.test(cleanEmail)) {
       setErrorMsg('Please enter a valid email address.');
       return;
+    }
+    if (formData.email !== cleanEmail) {
+      setFormData(prev => ({ ...prev, email: cleanEmail }));
     }
     if (!formData.destination.trim()) {
       setErrorMsg('Please enter your desired destination.');
@@ -105,7 +109,9 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
     }
 
     // Open OTP Verification Modal before final submission
-    setShowOtpModal(true);
+    if (!showOtpModal) {
+      setShowOtpModal(true);
+    }
   };
 
   const handleOtpVerifiedSubmission = async (verificationToken: string) => {

@@ -63,18 +63,24 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
       setErrorMessage('Please provide a valid 10-digit WhatsApp / mobile number.');
       return;
     }
-    if (!formData.email.trim()) {
+    const cleanEmail = formData.email.trim().toLowerCase();
+    if (!cleanEmail) {
       setErrorMessage('Please provide your email address.');
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email.trim())) {
+    if (!emailRegex.test(cleanEmail)) {
       setErrorMessage('Please provide a valid email address.');
       return;
     }
+    if (formData.email !== cleanEmail) {
+      setFormData(prev => ({ ...prev, email: cleanEmail }));
+    }
 
     // Open OTP modal before final submission
-    setShowOtpModal(true);
+    if (!showOtpModal) {
+      setShowOtpModal(true);
+    }
   };
 
   const handleOtpVerified = async (verificationToken: string) => {
@@ -138,7 +144,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
       id="quote-modal-backdrop"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={(e) => {
-        if (e.target === e.currentTarget) resetAndClose();
+        if (e.target === e.currentTarget && !loading && !showOtpModal) resetAndClose();
       }}
     >
       <div 

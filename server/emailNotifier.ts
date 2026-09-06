@@ -66,7 +66,8 @@ async function sendViaBrevo(options: {
         'Content-Type': 'application/json',
         'api-key': brevoApiKey
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(8000)
     });
 
     const responseData = (await response.json().catch(() => ({}))) as any;
