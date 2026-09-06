@@ -16,6 +16,7 @@ import {
 import { QuoteRequestData } from '../types';
 import { createQuickQuoteWhatsAppLink, COMPANY_PHONE } from '../utils/whatsapp';
 import { EmailOtpVerificationModal } from './EmailOtpVerificationModal';
+import { apiUrl } from '../utils/apiConfig';
 
 interface QuoteModalProps {
   isOpen: boolean;
@@ -87,7 +88,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
     setLoading(true);
     setErrorMessage('');
     try {
-      const res = await fetch('/api/enquiries', {
+      const res = await fetch(apiUrl('/api/enquiries'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

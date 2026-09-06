@@ -29,6 +29,7 @@ import { AdminPackageManager } from './AdminPackageManager';
 import { AdminEnquiriesManager } from './AdminEnquiriesManager';
 import { FileSpreadsheet } from 'lucide-react';
 import { getStorageItem, setStorageItem, removeStorageItem } from '../../utils/storage';
+import { apiUrl } from '../../utils/apiConfig';
 
 interface AdminUser {
   email: string;
@@ -125,7 +126,7 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/admin/me', { headers });
+      const res = await fetch(apiUrl('/api/admin/me'), { headers });
       const data = await res.json();
       if (data.authenticated && data.user) {
         setAdminUser(data.user);
@@ -147,7 +148,7 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/admin/dashboard-data', { headers });
+      const res = await fetch(apiUrl('/api/admin/dashboard-data'), { headers });
       if (res.ok) {
         const data = await res.json();
         setDashboardData(data);
@@ -168,7 +169,7 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
     setLoading(true);
 
     try {
-      const res = await fetch('/api/admin/login-step1', {
+      const res = await fetch(apiUrl('/api/admin/login-step1'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password })
@@ -214,7 +215,7 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
     setLoading(true);
 
     try {
-      const res = await fetch('/api/admin/setup-2fa', {
+      const res = await fetch(apiUrl('/api/admin/setup-2fa'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempToken, tokenCode: code })
@@ -254,7 +255,7 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
     setLoading(true);
 
     try {
-      const res = await fetch('/api/admin/verify-2fa', {
+      const res = await fetch(apiUrl('/api/admin/verify-2fa'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempToken, tokenCode: code })
@@ -288,7 +289,7 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
       const token = getStorageItem('admin_token');
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      await fetch('/api/admin/logout', { method: 'POST', headers });
+      await fetch(apiUrl('/api/admin/logout'), { method: 'POST', headers });
     } catch (err) {
       console.error('Logout error:', err);
     } finally {

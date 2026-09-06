@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { HolidayPackage, DayItinerary } from '../../types';
 import { getStorageItem } from '../../utils/storage';
+import { apiUrl } from '../../utils/apiConfig';
 
 interface AdminPackageManagerProps {
   category: 'domestic' | 'international';
@@ -124,7 +125,7 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/packages?category=${category}`, {
+      const res = await fetch(apiUrl(`/api/admin/packages?category=${category}`), {
         headers: getAuthHeaders()
       });
       if (!res.ok) {
@@ -233,7 +234,7 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
       const base64Data = reader.result as string;
       try {
         // Upload immediately to server
-        const res = await fetch('/api/admin/upload-image', {
+        const res = await fetch(apiUrl('/api/admin/upload-image'), {
           method: 'POST',
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ imageBase64: base64Data, originalName: file.name })
@@ -270,7 +271,7 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
   const handleToggleVisibility = async (pkg: HolidayPackage) => {
     const newHiddenState = !pkg.isHidden;
     try {
-      const res = await fetch(`/api/admin/packages/${pkg.id}/visibility`, {
+      const res = await fetch(apiUrl(`/api/admin/packages/${pkg.id}/visibility`), {
         method: 'PATCH',
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ isHidden: newHiddenState })
@@ -300,7 +301,7 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
 
     try {
       const orderedIds = updated.map(p => p.id);
-      const res = await fetch('/api/admin/packages/reorder', {
+      const res = await fetch(apiUrl('/api/admin/packages/reorder'), {
         method: 'POST',
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ category, orderedIds })
@@ -339,13 +340,13 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
     try {
       let res: Response;
       if (isNewPackage) {
-        res = await fetch('/api/admin/packages', {
+        res = await fetch(apiUrl('/api/admin/packages'), {
           method: 'POST',
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(payload)
         });
       } else {
-        res = await fetch(`/api/admin/packages/${formData.id}`, {
+        res = await fetch(apiUrl(`/api/admin/packages/${formData.id}`), {
           method: 'PUT',
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(payload)
@@ -372,7 +373,7 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/packages/${deleteTarget.id}`, {
+      const res = await fetch(apiUrl(`/api/admin/packages/${deleteTarget.id}`), {
         method: 'DELETE',
         headers: getAuthHeaders()
       });

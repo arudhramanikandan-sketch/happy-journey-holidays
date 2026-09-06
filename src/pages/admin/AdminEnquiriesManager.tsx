@@ -28,6 +28,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { getStorageItem } from '../../utils/storage';
+import { apiUrl } from '../../utils/apiConfig';
 
 export type EnquiryStatus = 
   | 'NEW' 
@@ -148,7 +149,7 @@ export const AdminEnquiriesManager: React.FC = () => {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/admin/enquiries?${queryParams.toString()}`, { headers });
+      const res = await fetch(apiUrl(`/api/admin/enquiries?${queryParams.toString()}`), { headers });
       if (!res.ok) {
         throw new Error('Failed to fetch customer enquiries.');
       }
@@ -182,7 +183,7 @@ export const AdminEnquiriesManager: React.FC = () => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/admin/enquiries/${id}/status`, {
+      const res = await fetch(apiUrl(`/api/admin/enquiries/${id}/status`), {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ status: newStatus })
@@ -222,7 +223,7 @@ export const AdminEnquiriesManager: React.FC = () => {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/admin/enquiries/${id}/resync`, {
+      const res = await fetch(apiUrl(`/api/admin/enquiries/${id}/resync`), {
         method: 'POST',
         headers
       });
@@ -249,7 +250,7 @@ export const AdminEnquiriesManager: React.FC = () => {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/admin/enquiries/${id}`, {
+      const res = await fetch(apiUrl(`/api/admin/enquiries/${id}`), {
         method: 'DELETE',
         headers
       });

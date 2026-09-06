@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { HolidayPackage } from '../types';
 import { createDestinationWhatsAppLink } from '../utils/whatsapp';
+import { apiUrl } from '../utils/apiConfig';
 
 interface PackageCardProps {
   pkg: HolidayPackage;
@@ -128,7 +129,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
               rel="noopener noreferrer"
               onClick={() => {
                 // Asynchronously log WhatsApp Direct Enquiry to Admin Backend
-                fetch('/api/enquiries/whatsapp-click', {
+                fetch(apiUrl('/api/enquiries/whatsapp-click'), {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({

@@ -24,6 +24,7 @@ import { CustomTripFormData, TripType, PageRoute } from '../types';
 import { createCustomTripWhatsAppLink, COMPANY_PHONE, COMPANY_EMAIL } from '../utils/whatsapp';
 import { EmailOtpVerificationModal } from '../components/EmailOtpVerificationModal';
 import { SubpageBackKey } from '../components/SubpageBackKey';
+import { apiUrl } from '../utils/apiConfig';
 
 interface CustomTripPageProps {
   onNavigate: (route: PageRoute) => void;
@@ -120,7 +121,7 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
 
     try {
       // POST to backend API with verified token
-      const res = await fetch('/api/enquiries', {
+      const res = await fetch(apiUrl('/api/enquiries'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

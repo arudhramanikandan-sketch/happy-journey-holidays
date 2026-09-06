@@ -23,6 +23,7 @@ import {
   createWhatsAppLink 
 } from '../utils/whatsapp';
 import { SubpageBackKey } from '../components/SubpageBackKey';
+import { apiUrl } from '../utils/apiConfig';
 
 interface ContactPageProps {
   onNavigate: (route: PageRoute) => void;
@@ -45,7 +46,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
     setLoading(true);
 
     try {
-      await fetch('/api/enquiries', {
+      await fetch(apiUrl('/api/enquiries'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

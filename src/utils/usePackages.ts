@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { HolidayPackage } from '../types';
 import { FEATURED_PACKAGES } from '../data/travelData';
+import { apiUrl } from './apiConfig';
 
 export function usePublicPackages(category?: 'domestic' | 'international') {
   const [packages, setPackages] = useState<HolidayPackage[]>(() => {
@@ -15,8 +16,8 @@ export function usePublicPackages(category?: 'domestic' | 'international') {
   const fetchPackages = useCallback(async () => {
     try {
       setLoading(true);
-      const url = category ? `/api/packages?category=${category}` : '/api/packages';
-      const res = await fetch(url);
+      const endpoint = category ? `/api/packages?category=${category}` : '/api/packages';
+      const res = await fetch(apiUrl(endpoint));
       if (!res.ok) throw new Error(`Failed to fetch packages: ${res.statusText}`);
       const data = await res.json();
       if (data.success && Array.isArray(data.packages)) {

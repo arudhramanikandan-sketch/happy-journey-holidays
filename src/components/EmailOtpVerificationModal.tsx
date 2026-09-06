@@ -10,6 +10,7 @@ import {
   CheckCircle2, 
   AlertCircle
 } from 'lucide-react';
+import { apiUrl } from '../utils/apiConfig';
 
 interface EmailOtpVerificationModalProps {
   isOpen: boolean;
@@ -104,7 +105,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
       const controller = new AbortController();
       const abortTimer = setTimeout(() => controller.abort(), 12000);
 
-      const res = await fetch('/api/otp/email/send', {
+      const res = await fetch(apiUrl('/api/otp/email/send'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -219,7 +220,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
       const controller = new AbortController();
       const abortTimer = setTimeout(() => controller.abort(), 12000);
 
-      const res = await fetch('/api/otp/email/verify', {
+      const res = await fetch(apiUrl('/api/otp/email/verify'), {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
