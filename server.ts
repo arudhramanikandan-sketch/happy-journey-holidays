@@ -576,7 +576,8 @@ async function startServer() {
   };
 
   // Step 1: Send OTP to customer's email address
-  app.post('/api/otp/email/send', async (req, res) => {
+  app.options(['/api/otp/email/send', '/api/otp/email/send/'], (req, res) => res.status(204).end());
+  app.post(['/api/otp/email/send', '/api/otp/email/send/'], async (req, res) => {
     const startTime = Date.now();
     const clientHeaders = {
       host: req.headers.host,
@@ -641,7 +642,8 @@ async function startServer() {
   });
 
   // Step 2: Verify customer entered email OTP
-  app.post('/api/otp/email/verify', async (req, res) => {
+  app.options(['/api/otp/email/verify', '/api/otp/email/verify/'], (req, res) => res.status(204).end());
+  app.post(['/api/otp/email/verify', '/api/otp/email/verify/'], async (req, res) => {
     try {
       const { email, otp } = req.body;
       if (!email || !otp) {
@@ -663,6 +665,17 @@ async function startServer() {
       console.error('[Verify Email OTP Error]:', err);
       return res.status(500).json({ error: 'Server error while verifying email OTP.' });
     }
+  });
+
+  // Handle any unsupported HTTP methods on OTP routes with pure JSON (never HTML)
+  app.all(['/api/otp/email/send', '/api/otp/email/send/'], (req, res) => {
+    res.setHeader('Allow', 'POST, OPTIONS');
+    return res.status(405).json({ error: 'Method Not Allowed. Use POST.' });
+  });
+
+  app.all(['/api/otp/email/verify', '/api/otp/email/verify/'], (req, res) => {
+    res.setHeader('Allow', 'POST, OPTIONS');
+    return res.status(405).json({ error: 'Method Not Allowed. Use POST.' });
   });
 
   // ==========================================

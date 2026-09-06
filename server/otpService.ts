@@ -447,51 +447,8 @@ export async function validateMsg91AccessToken(token: string): Promise<{
 }
 
 // ==========================================
-// MSG91 EMAIL OTP DISPATCH & VERIFICATION
-// ==========================================
-
-async function sendMsg91EmailOtpDispatch(
-  email: string,
-  otpCode: string,
-  fullName?: string
-): Promise<{ success: boolean; reqId?: string }> {
-  const widgetId = process.env.MSG91_WIDGET_ID?.trim() || '3669616d5678393137353837';
-  const tokenAuth = process.env.MSG91_TOKEN_AUTH?.trim() || '566604TKkpCn6zG6a96d838P1';
-  const authKey = process.env.MSG91_AUTH_KEY?.trim() || tokenAuth;
-
-  console.log(`[MSG91 Email Engine] Triggering MSG91 Email OTP for ${email}...`);
-
-  // Try official MSG91 Widget sendOtp endpoint for email identifier
-  try {
-    const res = await fetch('https://api.msg91.com/api/v5/widget/sendOtp', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'authkey': authKey
-      },
-      body: JSON.stringify({
-        widgetId,
-        tokenAuth,
-        identifier: email,
-        otp: otpCode
-      })
-    });
-    const data: any = await res.json().catch(() => ({}));
-    console.log('[MSG91 Email Widget sendOtp Response]:', data);
-
-    if (res.ok && (data.type === 'success' || data.message?.toLowerCase().includes('success'))) {
-      console.log(`[MSG91 Email Widget] ✅ Dispatched to ${email}. ReqId:`, data.reqId || data.request_id);
-      return { success: true, reqId: data.reqId || data.request_id };
-    }
-  } catch (err) {
-    console.warn('[MSG91 Email Widget sendOtp Error]:', err);
-  }
-
-  return { success: true };
-}
-
-// ==========================================
 // EMAIL OTP METHODS (FOR CUSTOMER ENQUIRIES)
+// Brevo REST API v3 is the primary transactional email engine
 // ==========================================
 
 export async function sendOtpToEmail(
@@ -504,7 +461,7 @@ export async function sendOtpToEmail(
   maskedEmail: string;
   otpCode: string;
   expiresInSeconds: number;
-  msg91Configured: boolean;
+  emailServiceConfigured: boolean;
   error?: string;
 }> {
   const email = normalizeEmail(rawEmail);
@@ -516,7 +473,7 @@ export async function sendOtpToEmail(
       maskedEmail: rawEmail,
       otpCode: '',
       expiresInSeconds: 0,
-      msg91Configured: Boolean(process.env.MSG91_AUTH_KEY || process.env.BREVO_API_KEY),
+      emailServiceConfigured: Boolean(process.env.BREVO_API_KEY),
       error: 'Please enter a valid email address.'
     };
   }
@@ -533,7 +490,7 @@ export async function sendOtpToEmail(
       maskedEmail: maskEmail(email),
       otpCode: existing.otp,
       expiresInSeconds: Math.ceil((existing.expiresAt - now) / 1000),
-      msg91Configured: Boolean(process.env.MSG91_AUTH_KEY || process.env.BREVO_API_KEY)
+      emailServiceConfigured: Boolean(process.env.BREVO_API_KEY)
     };
   }
 
@@ -553,15 +510,12 @@ export async function sendOtpToEmail(
     verified: false
   });
 
-  // 1. Dispatch via Brevo REST API (fast, reliable primary transactional email engine)
+  // Dispatch via Brevo REST API v3 (authenticated primary transactional email engine)
   try {
     await sendOtpVerificationEmail(email, fullName || 'Valued Traveller', otpCode, destinationOrPackage);
   } catch (err) {
     console.warn('[Email OTP Engine] Brevo send error:', err);
   }
-
-  // 2. Non-blocking auxiliary dispatch via MSG91 (runs in background without stalling response)
-  sendMsg91EmailOtpDispatch(email, otpCode, fullName).catch(() => {});
 
   console.log(`[Email OTP Engine] Active OTP for ${email} (${fullName || 'Customer'}): ${otpCode} (Valid for 5 mins)`);
 
@@ -571,7 +525,7 @@ export async function sendOtpToEmail(
     maskedEmail: maskEmail(email),
     otpCode,
     expiresInSeconds,
-    msg91Configured: Boolean(process.env.MSG91_AUTH_KEY || process.env.BREVO_API_KEY)
+    emailServiceConfigured: Boolean(process.env.BREVO_API_KEY)
   };
 }
 
