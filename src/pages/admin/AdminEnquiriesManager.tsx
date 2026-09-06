@@ -27,6 +27,7 @@ import {
   Send,
   Loader2
 } from 'lucide-react';
+import { getStorageItem } from '../../utils/storage';
 
 export type EnquiryStatus = 
   | 'NEW' 
@@ -126,6 +127,7 @@ export const AdminEnquiriesManager: React.FC = () => {
   const [isResyncing, setIsResyncing] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
+  const [actionErrorMsg, setActionErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEnquiries();
@@ -142,7 +144,7 @@ export const AdminEnquiriesManager: React.FC = () => {
       if (selectedSource !== 'All') queryParams.set('source', selectedSource);
       if (selectedDateFilter !== 'All') queryParams.set('dateFilter', selectedDateFilter);
 
-      const token = localStorage.getItem('admin_token');
+      const token = getStorageItem('admin_token');
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -176,7 +178,7 @@ export const AdminEnquiriesManager: React.FC = () => {
   const handleStatusChange = async (id: string, newStatus: EnquiryStatus) => {
     setIsUpdatingStatus(id);
     try {
-      const token = localStorage.getItem('admin_token');
+      const token = getStorageItem('admin_token');
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -206,7 +208,8 @@ export const AdminEnquiriesManager: React.FC = () => {
       setActionSuccessMsg(`Status updated to "${newStatus}" for ${id}`);
       setTimeout(() => setActionSuccessMsg(null), 3000);
     } catch (err: any) {
-      alert(`Error updating status: ${err.message}`);
+      setActionErrorMsg(`Error updating status: ${err.message}`);
+      setTimeout(() => setActionErrorMsg(null), 4000);
     } finally {
       setIsUpdatingStatus(null);
     }
@@ -215,7 +218,7 @@ export const AdminEnquiriesManager: React.FC = () => {
   const handleResyncGoogleSheet = async (id: string) => {
     setIsResyncing(id);
     try {
-      const token = localStorage.getItem('admin_token');
+      const token = getStorageItem('admin_token');
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -233,7 +236,8 @@ export const AdminEnquiriesManager: React.FC = () => {
       setActionSuccessMsg(data.message || 'Google Sheets sync triggered.');
       setTimeout(() => setActionSuccessMsg(null), 3500);
     } catch (err: any) {
-      alert(`Sync failed: ${err.message}`);
+      setActionErrorMsg(`Sync failed: ${err.message}`);
+      setTimeout(() => setActionErrorMsg(null), 4000);
     } finally {
       setIsResyncing(null);
     }
@@ -241,7 +245,7 @@ export const AdminEnquiriesManager: React.FC = () => {
 
   const handleDeleteEnquiry = async (id: string) => {
     try {
-      const token = localStorage.getItem('admin_token');
+      const token = getStorageItem('admin_token');
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -260,7 +264,8 @@ export const AdminEnquiriesManager: React.FC = () => {
       setTimeout(() => setActionSuccessMsg(null), 3000);
       fetchEnquiries();
     } catch (err: any) {
-      alert(`Delete error: ${err.message}`);
+      setActionErrorMsg(`Delete error: ${err.message}`);
+      setTimeout(() => setActionErrorMsg(null), 4000);
     }
   };
 
@@ -400,6 +405,18 @@ export const AdminEnquiriesManager: React.FC = () => {
             <span>{actionSuccessMsg}</span>
           </div>
           <button onClick={() => setActionSuccessMsg(null)} className="text-emerald-400 hover:text-white">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {actionErrorMsg && (
+        <div className="p-3 bg-rose-950/90 border border-rose-700 text-rose-200 rounded-xl text-xs font-medium flex items-center justify-between animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="text-rose-400" />
+            <span>{actionErrorMsg}</span>
+          </div>
+          <button onClick={() => setActionErrorMsg(null)} className="text-rose-400 hover:text-white">
             <X size={14} />
           </button>
         </div>

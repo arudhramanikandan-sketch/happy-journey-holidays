@@ -28,6 +28,7 @@ import { Logo } from '../../components/Logo';
 import { AdminPackageManager } from './AdminPackageManager';
 import { AdminEnquiriesManager } from './AdminEnquiriesManager';
 import { FileSpreadsheet } from 'lucide-react';
+import { getStorageItem, setStorageItem, removeStorageItem } from '../../utils/storage';
 
 interface AdminUser {
   email: string;
@@ -120,7 +121,7 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
   const checkCurrentSession = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
+      const token = getStorageItem('admin_token');
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -142,7 +143,7 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
 
   const fetchDashboardData = async () => {
     try {
-      const token = localStorage.getItem('admin_token');
+      const token = getStorageItem('admin_token');
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -227,7 +228,7 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
       }
 
       if (data.sessionToken) {
-        localStorage.setItem('admin_token', data.sessionToken);
+        setStorageItem('admin_token', data.sessionToken);
       }
 
       setAdminUser(data.user);
@@ -267,7 +268,7 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
       }
 
       if (data.sessionToken) {
-        localStorage.setItem('admin_token', data.sessionToken);
+        setStorageItem('admin_token', data.sessionToken);
       }
 
       setAdminUser(data.user);
@@ -284,14 +285,14 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
   const handleLogout = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('admin_token');
+      const token = getStorageItem('admin_token');
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
       await fetch('/api/admin/logout', { method: 'POST', headers });
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      localStorage.removeItem('admin_token');
+      removeStorageItem('admin_token');
       setAdminUser(null);
       setDashboardData(null);
       setPassword('');

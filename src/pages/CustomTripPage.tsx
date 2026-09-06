@@ -139,7 +139,15 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
       setShowOtpModal(false);
     } finally {
       setLoading(false);
-      window.scrollTo({ top: 120, behavior: 'smooth' });
+      try {
+        window.scrollTo({ top: 120, behavior: 'smooth' });
+      } catch {
+        try {
+          window.scrollTo(0, 120);
+        } catch {
+          // ignore
+        }
+      }
     }
   };
 

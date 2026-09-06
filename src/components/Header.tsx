@@ -55,7 +55,15 @@ export const Header: React.FC<HeaderProps> = ({
   const handleNavClick = (route: PageRoute) => {
     onRouteChange(route);
     setMobileMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch {
+      try {
+        window.scrollTo(0, 0);
+      } catch {
+        // ignore
+      }
+    }
   };
 
   return (

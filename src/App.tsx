@@ -17,24 +17,28 @@ export default function App() {
   // Read initial route from URL path or hash fallback (e.g. /admin or #admin)
   const getInitialRoute = (): PageRoute => {
     if (typeof window === 'undefined') return '/';
-    const path = window.location.pathname;
-    const hash = window.location.hash.replace('#', '');
-    
-    if (path === '/admin' || hash === 'admin' || hash === '/admin') {
-      return '/admin';
-    }
+    try {
+      const path = window.location.pathname;
+      const hash = (window.location.hash || '').replace('#', '');
+      
+      if (path === '/admin' || hash === 'admin' || hash === '/admin') {
+        return '/admin';
+      }
 
-    const validRoutes: PageRoute[] = [
-      '/',
-      '/international-holidays',
-      '/domestic-holidays',
-      '/services',
-      '/custom-trip',
-      '/about',
-      '/contact',
-      '/admin'
-    ];
-    return validRoutes.includes(path as PageRoute) ? (path as PageRoute) : '/';
+      const validRoutes: PageRoute[] = [
+        '/',
+        '/international-holidays',
+        '/domestic-holidays',
+        '/services',
+        '/custom-trip',
+        '/about',
+        '/contact',
+        '/admin'
+      ];
+      return validRoutes.includes(path as PageRoute) ? (path as PageRoute) : '/';
+    } catch {
+      return '/';
+    }
   };
 
   const [currentRoute, setCurrentRoute] = useState<PageRoute>(getInitialRoute);
@@ -46,22 +50,46 @@ export default function App() {
   // Handle browser back/forward buttons and hash navigation
   useEffect(() => {
     const handlePopState = () => {
-      setCurrentRoute(getInitialRoute());
+      try {
+        setCurrentRoute(getInitialRoute());
+      } catch (err) {
+        console.warn('Popstate error:', err);
+      }
     };
-    window.addEventListener('popstate', handlePopState);
-    window.addEventListener('hashchange', handlePopState);
+    try {
+      window.addEventListener('popstate', handlePopState);
+      window.addEventListener('hashchange', handlePopState);
+    } catch {
+      // ignore
+    }
     return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('hashchange', handlePopState);
+      try {
+        window.removeEventListener('popstate', handlePopState);
+        window.removeEventListener('hashchange', handlePopState);
+      } catch {
+        // ignore
+      }
     };
   }, []);
 
   // Update URL and document title on route change
   const navigateTo = (route: PageRoute) => {
     if (route !== currentRoute) {
-      window.history.pushState({}, '', route);
+      try {
+        window.history.pushState({}, '', route);
+      } catch {
+        // Sandboxed iframe protection
+      }
       setCurrentRoute(route);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      try {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch {
+        try {
+          window.scrollTo(0, 0);
+        } catch {
+          // ignore
+        }
+      }
     }
 
     // Dynamic SEO title based on page
@@ -91,7 +119,11 @@ export default function App() {
       default:
         pageTitle = 'Happy Journey Holidays | Best Travel Agency in Coimbatore | Holiday Packages & Visas';
     }
-    document.title = pageTitle;
+    try {
+      document.title = pageTitle;
+    } catch {
+      // ignore
+    }
   };
 
   const handleOpenQuoteModal = (initialServiceOrDestination?: string) => {

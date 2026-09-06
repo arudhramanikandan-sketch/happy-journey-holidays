@@ -268,7 +268,7 @@ export const InternationalHolidaysPage: React.FC<InternationalHolidaysPageProps>
                             Key Highlights & Experiences:
                           </h4>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {dest.popularExperiences.map((exp, idx) => (
+                            {(dest.popularExperiences || []).map((exp, idx) => (
                               <div key={idx} className="flex items-start gap-2 text-xs text-slate-300">
                                 <Check size={14} className="text-emerald-400 flex-shrink-0 mt-0.5" />
                                 <span>{exp}</span>
@@ -336,7 +336,7 @@ export const InternationalHolidaysPage: React.FC<InternationalHolidaysPageProps>
 
                             {pkg.highlights && pkg.highlights.length > 0 && (
                               <ul className="mt-3 space-y-1 text-[11px] text-slate-300">
-                                {pkg.highlights.slice(0, 3).map((h, i) => (
+                                {(pkg.highlights || []).slice(0, 3).map((h, i) => (
                                   <li key={i} className="flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-[#F27D26] flex-shrink-0"></span>
                                     <span className="line-clamp-1">{h}</span>

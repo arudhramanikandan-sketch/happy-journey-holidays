@@ -18,13 +18,19 @@ export const SubpageBackKey: React.FC<SubpageBackKeyProps> = ({
   className = ''
 }) => {
   const handleBack = () => {
-    // If there is history within the session, navigate back; otherwise fallback to route
-    if (typeof window !== 'undefined' && window.history && window.history.length > 1) {
-      window.history.back();
-    } else if (onNavigate) {
+    // If onNavigate is available, prefer smooth client-side routing
+    if (onNavigate) {
       onNavigate(fallbackRoute);
-    } else if (typeof window !== 'undefined') {
-      window.location.href = fallbackRoute;
+      return;
+    }
+    try {
+      if (typeof window !== 'undefined' && window.history && window.history.length > 1) {
+        window.history.back();
+      } else if (typeof window !== 'undefined') {
+        window.location.hash = fallbackRoute;
+      }
+    } catch {
+      // ignore
     }
   };
 
@@ -32,8 +38,14 @@ export const SubpageBackKey: React.FC<SubpageBackKeyProps> = ({
     e.preventDefault();
     if (onNavigate) {
       onNavigate('/');
-    } else if (typeof window !== 'undefined') {
-      window.location.href = '/';
+    } else {
+      try {
+        if (typeof window !== 'undefined') {
+          window.location.hash = '';
+        }
+      } catch {
+        // ignore
+      }
     }
   };
 

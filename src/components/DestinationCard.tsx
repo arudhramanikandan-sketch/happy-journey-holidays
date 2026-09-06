@@ -72,7 +72,7 @@ export const DestinationCard: React.FC<DestinationCardProps> = ({
             Top Highlights:
           </span>
           <div className="flex flex-wrap gap-1">
-            {destination.highlights.slice(0, 3).map((item, idx) => (
+            {(destination.highlights || []).slice(0, 3).map((item, idx) => (
               <span 
                 key={idx}
                 className="text-[10px] bg-[#002242] text-slate-200 font-medium px-2 py-0.5 rounded-md border border-[#00376b]"

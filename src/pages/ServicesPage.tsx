@@ -140,7 +140,7 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
                         Key Features & Inclusions:
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {service.features.map((feat, idx) => (
+                        {(service.features || []).map((feat, idx) => (
                           <div key={idx} className="flex items-start gap-2 text-xs text-slate-200 bg-[#000e1f] p-2.5 rounded-xl border border-[#002b54]">
                             <CheckCircle2 size={15} className="text-emerald-400 flex-shrink-0 mt-0.5" />
                             <span>{feat}</span>

@@ -26,6 +26,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { HolidayPackage, DayItinerary } from '../../types';
+import { getStorageItem } from '../../utils/storage';
 
 interface AdminPackageManagerProps {
   category: 'domestic' | 'international';
@@ -113,7 +114,7 @@ export const AdminPackageManager: React.FC<AdminPackageManagerProps> = ({ catego
   };
 
   const getAuthHeaders = (extra: Record<string, string> = {}): Record<string, string> => {
-    const token = localStorage.getItem('admin_token');
+    const token = getStorageItem('admin_token');
     const headers: Record<string, string> = { ...extra };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return headers;

@@ -76,7 +76,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
             Package Highlights:
           </p>
           <ul className="space-y-1.5 text-xs text-slate-300">
-            {pkg.highlights.slice(0, 3).map((hl, idx) => (
+            {(pkg.highlights || []).slice(0, 3).map((hl, idx) => (
               <li key={idx} className="flex items-start gap-2">
                 <Check size={14} className="text-emerald-400 flex-shrink-0 mt-0.5" />
                 <span className="line-clamp-1">{hl}</span>
@@ -87,7 +87,7 @@ export const PackageCard: React.FC<PackageCardProps> = ({
 
         {/* Inclusions pill tags */}
         <div className="flex flex-wrap gap-1.5 pt-1">
-          {pkg.inclusions.slice(0, 4).map((inc, i) => (
+          {(pkg.inclusions || []).slice(0, 4).map((inc, i) => (
             <span 
               key={i}
               className="text-[10px] bg-[#002242] text-slate-200 font-medium px-2 py-0.5 rounded-full border border-[#00376b]"

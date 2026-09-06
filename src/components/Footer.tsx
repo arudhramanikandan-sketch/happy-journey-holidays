@@ -30,7 +30,15 @@ interface FooterProps {
 export const Footer: React.FC<FooterProps> = ({ onRouteChange, onOpenQuoteModal }) => {
   const handleNav = (route: PageRoute) => {
     onRouteChange(route);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch {
+      try {
+        window.scrollTo(0, 0);
+      } catch {
+        // ignore
+      }
+    }
   };
 
   return (

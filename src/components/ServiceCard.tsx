@@ -74,7 +74,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
 
         {/* Features Checklist */}
         <ul className="space-y-2 mb-6 text-xs text-slate-300">
-          {service.features.slice(0, 3).map((feat, idx) => (
+          {(service.features || []).slice(0, 3).map((feat, idx) => (
             <li key={idx} className="flex items-start gap-2">
               <Check size={14} className="text-emerald-400 flex-shrink-0 mt-0.5" />
               <span className="line-clamp-1">{feat}</span>
