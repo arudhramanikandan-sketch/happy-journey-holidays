@@ -84,7 +84,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
         setMaskedEmail(cleanEmail);
       }
 
-      // 1. Dispatch via Server API (Brevo Email & MSG91)
+      // 1. Dispatch via Server API (Brevo Email)
       const res = await fetch('/api/otp/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -174,7 +174,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
     setErrorMessage('');
 
     try {
-      // Verify via Server API (validates MSG91 generated or direct OTP)
+      // Verify via Server API (validates Brevo generated OTP)
       const res = await fetch('/api/otp/email/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -224,7 +224,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
             </div>
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#F27D26]">
-                MSG91 Email Verification
+                Brevo Email Verification
               </span>
               <h3 className="text-base font-heading font-bold text-white leading-tight">
                 Verify Your Email Address
@@ -360,7 +360,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
               {/* Privacy Trust Badge */}
               <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 pt-1 text-center">
                 <ShieldCheck size={13} className="text-emerald-400" />
-                <span>MSG91 Verified • Happy Journey Holidays 100% Secure</span>
+                <span>Brevo Verified • Happy Journey Holidays 100% Secure</span>
               </div>
             </>
           )}
