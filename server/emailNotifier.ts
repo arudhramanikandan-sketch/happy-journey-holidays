@@ -1,3 +1,5 @@
+import fs from 'fs';
+
 export interface EmailEnquiryPayload {
   enquiryReference: string;
   customerName: string;
@@ -59,6 +61,7 @@ async function sendViaBrevo(options: {
       textContent: options.textContent || undefined
     };
 
+    const brevoStartTime = Date.now();
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -71,6 +74,20 @@ async function sendViaBrevo(options: {
     });
 
     const responseData = (await response.json().catch(() => ({}))) as any;
+    const brevoDurationMs = Date.now() - brevoStartTime;
+
+    try {
+      const diag = JSON.stringify({
+        time: new Date().toISOString(),
+        tag: 'BREVO_RESPONSE',
+        status: response.status,
+        ok: response.ok,
+        durationMs: brevoDurationMs,
+        hasMessageId: Boolean(responseData?.messageId),
+        errMsg: responseData?.message || null
+      }) + '\n';
+      fs.appendFileSync('/tmp/otp_diagnostics.log', diag);
+    } catch (e) {}
 
     if (response.ok && (response.status === 200 || response.status === 201)) {
       const messageId = responseData?.messageId || 'brevo-dispatched';

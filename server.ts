@@ -52,11 +52,17 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Enable CORS & Security Headers for Mobile WebViews (WhatsApp, Instagram) & External Browsers
+  // Enable CORS & Security Headers for Mobile WebViews, Partitioned Storage & External Browsers
   app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Keep-Alive');
     if (req.method === 'OPTIONS') {
       return res.status(204).end();
     }
@@ -554,28 +560,81 @@ async function startServer() {
   // CUSTOMER EMAIL OTP VERIFICATION
   // ==========================================
 
+  // Safe diagnostic logger for OTP requests (NEVER logs sensitive data like API keys, OTPs, or personal emails)
+  const logSafeOtpDiagnostic = (label: string, data: Record<string, any>) => {
+    try {
+      const entry = JSON.stringify({
+        time: new Date().toISOString(),
+        tag: label,
+        ...data
+      }) + '\n';
+      fs.appendFileSync('/tmp/otp_diagnostics.log', entry);
+      console.log(`[OTP-DIAG] ${label}:`, JSON.stringify(data));
+    } catch (e) {
+      // ignore logging errors
+    }
+  };
+
   // Step 1: Send OTP to customer's email address
   app.post('/api/otp/email/send', async (req, res) => {
+    const startTime = Date.now();
+    const clientHeaders = {
+      host: req.headers.host,
+      origin: req.headers.origin,
+      referer: req.headers.referer,
+      userAgent: req.headers['user-agent'],
+      contentType: req.headers['content-type'],
+      accept: req.headers.accept,
+      secChUa: req.headers['sec-ch-ua'],
+      secChUaMobile: req.headers['sec-ch-ua-mobile'],
+      secChUaPlatform: req.headers['sec-ch-ua-platform'],
+      secFetchMode: req.headers['sec-fetch-mode'],
+      secFetchSite: req.headers['sec-fetch-site'],
+      secFetchDest: req.headers['sec-fetch-dest'],
+      cookiePresent: Boolean(req.headers.cookie),
+      xForwardedFor: req.headers['x-forwarded-for'],
+      xForwardedProto: req.headers['x-forwarded-proto']
+    };
+
+    const rawEmail = typeof req.body?.email === 'string' ? req.body.email : '';
+    const maskedEmailSafe = rawEmail ? rawEmail.replace(/^(.)(.*)(@.*)$/, (_m, a, b, c) => `${a}${'*'.repeat(Math.max(1, b.length))}${c}`) : '(empty)';
+
+    logSafeOtpDiagnostic('REQ_RECEIVED', {
+      endpoint: '/api/otp/email/send',
+      method: req.method,
+      headers: clientHeaders,
+      bodyKeys: req.body ? Object.keys(req.body) : null,
+      emailMasked: maskedEmailSafe,
+      hasFullName: Boolean(req.body?.fullName),
+      hasDestination: Boolean(req.body?.destinationOrPackage)
+    });
+
     try {
-      const { email, fullName, destinationOrPackage } = req.body;
+      const { email, fullName, destinationOrPackage } = req.body || {};
       if (!email || typeof email !== 'string') {
-        return res.status(400).json({ error: 'Please provide a valid email address.' });
+        const errResp = { error: 'Please provide a valid email address.' };
+        logSafeOtpDiagnostic('RESP_ERR_BAD_INPUT', { status: 400, err: errResp.error, durationMs: Date.now() - startTime });
+        return res.status(400).json(errResp);
       }
 
       const result = await sendOtpToEmail(email, fullName, destinationOrPackage);
       if (!result.success) {
-        return res.status(400).json({ error: result.error || 'Failed to send OTP to email.' });
+        const errResp = { error: result.error || 'Failed to send OTP to email.' };
+        logSafeOtpDiagnostic('RESP_ERR_BACKEND', { status: 400, err: errResp.error, durationMs: Date.now() - startTime });
+        return res.status(400).json(errResp);
       }
 
-      return res.json({
+      const successResp = {
         success: true,
         message: `Verification code sent to ${result.maskedEmail}`,
         email: result.email,
         maskedEmail: result.maskedEmail,
-        otpCode: result.otpCode,
         expiresInSeconds: result.expiresInSeconds
-      });
+      };
+      logSafeOtpDiagnostic('RESP_SUCCESS', { status: 200, maskedEmail: result.maskedEmail, durationMs: Date.now() - startTime });
+      return res.json(successResp);
     } catch (err: any) {
+      logSafeOtpDiagnostic('RESP_EXCEPTION', { status: 500, error: err.message, stack: err.stack?.slice(0, 200), durationMs: Date.now() - startTime });
       console.error('[Send Email OTP Error]:', err);
       return res.status(500).json({ error: 'Server error while generating email OTP.' });
     }

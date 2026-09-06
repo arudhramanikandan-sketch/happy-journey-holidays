@@ -123,6 +123,7 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
       const res = await fetch('/api/enquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           type: 'custom_trip',
           ...formData,

@@ -110,6 +110,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           email: cleanEmail,
           fullName,
@@ -120,7 +121,9 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
       });
       clearTimeout(abortTimer);
 
-      const data = await res.json().catch(() => ({}));
+      const isJson = res.headers.get('content-type')?.includes('application/json');
+      const data = isJson ? await res.json().catch(() => ({})) : {};
+
       if (res.ok && data.success) {
         setResendCountdown(30);
         if (data.maskedEmail) {
@@ -129,7 +132,8 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
         setErrorMessage('');
       } else {
         setResendCountdown(0);
-        setErrorMessage(data.error || 'Failed to send OTP to your email address.');
+        const serverError = data.error || (res.status === 400 ? 'Please check your email address.' : res.status ? `Server returned error (${res.status}).` : 'Failed to send OTP to your email address.');
+        setErrorMessage(serverError);
       }
     } catch (err: any) {
       console.warn('[Email OTP Note]:', err);
@@ -221,6 +225,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
           'Content-Type': 'application/json',
           'Accept': 'application/json' 
         },
+        credentials: 'include',
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           otp: code
@@ -230,7 +235,8 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
       });
       clearTimeout(abortTimer);
 
-      const data = await res.json().catch(() => ({}));
+      const isJson = res.headers.get('content-type')?.includes('application/json');
+      const data = isJson ? await res.json().catch(() => ({})) : {};
 
       if (res.ok && data.success && data.verifiedToken) {
         setIsSuccess(true);
