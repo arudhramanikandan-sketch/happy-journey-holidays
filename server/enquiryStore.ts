@@ -68,65 +68,17 @@ function ensureStorageExists() {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   if (!fs.existsSync(ENQUIRIES_FILE)) {
-    // Initial sample record for demonstration
-    const initialRecords: EnquiryRecord[] = [
-      {
-        id: 'HJH-739201',
-        enquiryReference: 'HJH-739201',
-        source: 'Website Enquiry',
-        date: new Date().toLocaleDateString('en-IN'),
-        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
-        customerName: 'Karthik Subramanian',
-        phoneNumber: '+91 98421 88990',
-        email: 'karthik.subramanian@gmail.com',
-        destination: 'Singapore & Malaysia Combo',
-        packageName: 'Singapore & Malaysia Spectacular',
-        category: 'International',
-        travelDate: '2026-10-15',
-        numberOfTravellers: '2 Adults, 1 Child',
-        adults: 2,
-        children: 1,
-        budget: '₹1,50,000 - ₹2,00,000',
-        tripType: 'Family Holiday',
-        departureCity: 'Coimbatore',
-        specialRequirements: 'Sentosa pass, Universal Studios tickets, and 4-star hotel in Kuala Lumpur.',
-        customerMessage: 'Looking for Sentosa pass, Universal Studios tickets, and 4-star hotel in Kuala Lumpur.',
-        status: 'NEW',
-        createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-        updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-        googleSheetStatus: 'synced',
-        emailNotificationStatus: 'sent'
-      },
-      {
-        id: 'HJH-618290',
-        enquiryReference: 'HJH-618290',
-        source: 'Website Enquiry',
-        date: new Date().toLocaleDateString('en-IN'),
-        time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
-        customerName: 'Priya & Anand',
-        phoneNumber: '+91 97890 12345',
-        email: 'priya.anand@outlook.com',
-        destination: 'Kashmir Paradise Honeymoon',
-        packageName: 'Kashmir Paradise & Houseboat Honeymoon',
-        category: 'Domestic',
-        travelDate: '2026-11-05',
-        numberOfTravellers: '2 Adults',
-        adults: 2,
-        children: 0,
-        budget: '₹75,000 - ₹1,00,000',
-        tripType: 'Honeymoon',
-        departureCity: 'Coimbatore',
-        specialRequirements: 'Luxury houseboat stay at Dal Lake, Gulmarg Gondola Phase 2 tickets, and romantic candle light dinner.',
-        customerMessage: 'Need luxury houseboat stay at Dal Lake, Gulmarg Gondola Phase 2 tickets, and romantic candle light dinner.',
-        status: 'QUOTE SENT',
-        createdAt: new Date(Date.now() - 3600000 * 6).toISOString(),
-        updatedAt: new Date(Date.now() - 3600000 * 1).toISOString(),
-        googleSheetStatus: 'synced',
-        emailNotificationStatus: 'sent'
-      }
-    ];
-    fs.writeFileSync(ENQUIRIES_FILE, JSON.stringify(initialRecords, null, 2), 'utf-8');
+    fs.writeFileSync(ENQUIRIES_FILE, JSON.stringify([], null, 2), 'utf-8');
   }
+}
+
+export function clearAllEnquiries(): number {
+  ensureStorageExists();
+  const raw = loadEnquiries();
+  const count = raw.length;
+  saveEnquiries([]);
+  console.log(`[Enquiry Store] All customer enquiry records cleared (${count} records deleted).`);
+  return count;
 }
 
 export function loadEnquiries(): EnquiryRecord[] {

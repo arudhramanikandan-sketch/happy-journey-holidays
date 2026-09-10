@@ -136,6 +136,8 @@ export const AdminEnquiriesManager: React.FC = () => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
   const [isResyncing, setIsResyncing] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showClearAllModal, setShowClearAllModal] = useState<boolean>(false);
+  const [isClearing, setIsClearing] = useState<boolean>(false);
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
   const [actionErrorMsg, setActionErrorMsg] = useState<string | null>(null);
 
@@ -323,6 +325,56 @@ export const AdminEnquiriesManager: React.FC = () => {
     }
   };
 
+  const handleClearAllEnquiries = async () => {
+    setIsClearing(true);
+    try {
+      const token = getStorageItem('admin_token');
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(apiUrl('/api/admin/enquiries/clear-all'), {
+        method: 'POST',
+        headers
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to clear customer enquiries from server.');
+      }
+
+      // Clear any cached pending enquiries
+      try {
+        localStorage.removeItem('hjh_pending_enquiries');
+      } catch {
+        // ignore
+      }
+
+      setEnquiries([]);
+      setStatusCounts({
+        total: 0,
+        new: 0,
+        contacted: 0,
+        quoteSent: 0,
+        confirmed: 0,
+        lostCancelled: 0,
+        closed: 0
+      });
+      setSourceCounts({
+        website: 0,
+        whatsapp: 0
+      });
+      setActiveEnquiry(null);
+      setShowClearAllModal(false);
+      setActionSuccessMsg('All customer enquiry data has been cleared.');
+      setTimeout(() => setActionSuccessMsg(null), 3500);
+      fetchEnquiries();
+    } catch (err: any) {
+      setActionErrorMsg(`Clear error: ${err.message}`);
+      setTimeout(() => setActionErrorMsg(null), 4000);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const handleExportCSV = () => {
     if (enquiries.length === 0) return;
 
@@ -447,6 +499,16 @@ export const AdminEnquiriesManager: React.FC = () => {
           >
             <Download size={13} />
             <span>Export CSV</span>
+          </button>
+
+          <button
+            onClick={() => setShowClearAllModal(true)}
+            disabled={enquiries.length === 0 || loading}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-950/70 text-rose-300 border border-rose-800 hover:bg-rose-900 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Clear all customer enquiries"
+          >
+            <Trash2 size={13} />
+            <span>Clear All Data</span>
           </button>
         </div>
       </div>
@@ -1534,6 +1596,64 @@ export const AdminEnquiriesManager: React.FC = () => {
                 className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-lg shadow-rose-950"
               >
                 Delete Permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CLEAR ALL CONFIRMATION DIALOG */}
+      {showClearAllModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in"
+          onClick={() => !isClearing && setShowClearAllModal(false)}
+        >
+          <div
+            className="bg-[#001529] rounded-3xl p-6 max-w-md w-full border border-rose-800 shadow-2xl text-center space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-full bg-rose-950 text-rose-400 border border-rose-800 flex items-center justify-center mx-auto">
+              <Trash2 size={26} />
+            </div>
+            <h4 className="text-xl font-extrabold text-white">Clear All Customer Enquiries?</h4>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              This will clear all saved customer enquiry records from the management database. 
+            </p>
+            <div className="bg-rose-950/60 border border-rose-800/80 rounded-2xl p-3 text-[11px] text-rose-200 text-left space-y-1">
+              <p className="font-bold text-rose-300 flex items-center gap-1.5">
+                <AlertCircle size={14} />
+                <span>Permanent Database Action:</span>
+              </p>
+              <p className="text-slate-300">
+                All {enquiries.length} enquiry records will be permanently removed. Newly submitted customer enquiries will continue to be received cleanly.
+              </p>
+            </div>
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                disabled={isClearing}
+                onClick={() => setShowClearAllModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-[#002244] text-slate-300 font-bold text-xs border border-[#003e7e] hover:bg-[#002f5e] transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isClearing}
+                onClick={handleClearAllEnquiries}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs transition shadow-lg shadow-rose-950 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isClearing ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Clearing Records...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    <span>Yes, Clear All</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

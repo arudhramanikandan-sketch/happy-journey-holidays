@@ -29,6 +29,7 @@ import {
   updateEnquiryStatus,
   updateEnquiryNotes,
   deleteEnquiryRecord,
+  clearAllEnquiries,
   resyncEnquiry,
   normalizeStatus,
   EnquiryStatus,
@@ -979,6 +980,26 @@ async function startServer() {
     } catch (err: any) {
       console.error('[Admin Enquiry Notes Update Error]:', err);
       res.status(500).json({ error: 'Failed to update enquiry notes.' });
+    }
+  });
+
+  // Clear all customer enquiries (Admin only)
+  app.post(['/api/admin/enquiries/clear-all', '/api/admin/enquiries/clear-all/'], requireAdminAuth, (req, res) => {
+    try {
+      const clientIp = getClientIp(req);
+      const userAgent = req.headers['user-agent'];
+      const clearedCount = clearAllEnquiries();
+
+      logSecurityEvent(`Admin cleared all customer enquiry records (${clearedCount} removed)`, clientIp, 'SUCCESS', userAgent);
+
+      res.json({
+        success: true,
+        clearedCount,
+        message: `All ${clearedCount} customer enquiries have been cleared successfully.`
+      });
+    } catch (err: any) {
+      console.error('[Admin Clear All Enquiries Error]:', err);
+      res.status(500).json({ error: 'Failed to clear customer enquiries.' });
     }
   });
 
