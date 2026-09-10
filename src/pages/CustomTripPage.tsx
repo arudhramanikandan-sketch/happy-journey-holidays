@@ -22,7 +22,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { CustomTripFormData, TripType, PageRoute } from '../types';
-import { createCustomTripWhatsAppLink, COMPANY_PHONE, COMPANY_EMAIL } from '../utils/whatsapp';
+import { createCustomTripWhatsAppLink, COMPANY_PHONE, COMPANY_PHONE_INTL, COMPANY_EMAIL } from '../utils/whatsapp';
 import { SubpageBackKey } from '../components/SubpageBackKey';
 import { apiUrl } from '../utils/apiConfig';
 
@@ -112,23 +112,43 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
 
     setLoading(true);
     try {
-      // POST to backend API
-      const res = await fetch(apiUrl('/api/enquiries'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          type: 'custom_trip',
-          ...formData,
-          email: cleanEmail
-        })
-      });
+      const payload = {
+        type: 'custom_trip',
+        ...formData,
+        email: cleanEmail
+      };
 
-      const result = await res.json().catch(() => ({}));
-      if (res.ok && result.success && result.referenceId) {
-        setSubmittedRef(result.referenceId);
+      // Try primary API endpoint (resolves cleanly to relative '/api/enquiries')
+      let res: Response | null = null;
+      try {
+        res = await fetch(apiUrl('/api/enquiries'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (firstErr) {
+        console.warn('Primary API fetch failed, trying direct relative /api/enquiries fallback...', firstErr);
+        res = await fetch('/api/enquiries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      if (res && res.ok) {
+        const result = await res.json().catch(() => ({}));
+        if (result.success && result.referenceId) {
+          setSubmittedRef(result.referenceId);
+          setErrorMsg('');
+          return;
+        } else {
+          setErrorMsg(result.error || 'Unable to register your custom trip with the booking server. Please verify your details or tap WhatsApp to submit directly.');
+        }
+      } else if (res) {
+        const result = await res.json().catch(() => ({}));
+        setErrorMsg(result.error || `Server responded with status ${res.status}. Please connect with us directly via WhatsApp.`);
       } else {
-        setErrorMsg(result.error || 'Unable to register your custom trip with the booking server. Please verify your details or tap WhatsApp to submit directly.');
+        setErrorMsg('Network error connecting to booking server. Please check your internet connection or tap WhatsApp below to send your itinerary request directly.');
       }
     } catch (err: any) {
       console.error('Custom trip submission error:', err);
@@ -295,7 +315,7 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
                   className="inline-flex items-center gap-1.5 font-bold text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
                 >
                   <MessageSquare size={13} />
-                  <span>Send your itinerary plan directly via WhatsApp (+91 97893 54321)</span>
+                  <span>Send your itinerary plan directly via WhatsApp ({COMPANY_PHONE_INTL})</span>
                 </button>
               </div>
             )}

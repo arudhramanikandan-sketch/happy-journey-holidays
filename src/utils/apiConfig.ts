@@ -21,18 +21,18 @@ export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname.toLowerCase();
 
-    // If running in local development or inside Google Cloud Run environment
+    // Only route to external Cloud Run backend if running on dedicated static hosts like GitHub Pages or Netlify
     if (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname.endsWith('.run.app')
+      hostname.endsWith('.github.io') ||
+      hostname.endsWith('.netlify.app') ||
+      hostname.endsWith('.vercel.app')
     ) {
-      return '';
+      return BACKEND_URL;
     }
 
-    // On external live website (e.g. happyjourneyholidays.com, GitHub Pages)
-    // Uses configured VITE_API_BASE_URL if set, or empty to fallback gracefully
-    return BACKEND_URL;
+    // Default to relative root on all other environments (local dev, Cloud Run, AI Studio iframe, preview, custom domains)
+    // Relative paths ensure requests hit the same container serving the app with zero CORS errors
+    return '';
   }
 
   return '';
@@ -40,10 +40,10 @@ export function getApiBaseUrl(): string {
 
 /**
  * Builds the full API URL for a given relative endpoint path.
- * e.g., apiUrl('/api/otp/email/send')
+ * e.g., apiUrl('/api/enquiries')
  */
 export function apiUrl(endpoint: string): string {
   const base = getApiBaseUrl();
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return `${base}${cleanEndpoint}`;
+  return base ? `${base}${cleanEndpoint}` : cleanEndpoint;
 }

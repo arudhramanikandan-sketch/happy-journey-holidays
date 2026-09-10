@@ -12,6 +12,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { apiUrl } from '../utils/apiConfig';
+import { createWhatsAppLink, COMPANY_PHONE_INTL } from '../utils/whatsapp';
 
 interface EmailOtpVerificationModalProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
   const handleWhatsAppFallback = () => {
     try {
       const text = `Hi Happy Journey Holidays! I am submitting an enquiry:\n• Tour/Package: ${destinationOrPackage || 'Holiday Package'}\n• Name: ${fullName}\n• Email: ${email}`;
-      window.open(`https://wa.me/919789354321?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+      window.open(createWhatsAppLink(text), '_blank', 'noopener,noreferrer');
       onClose();
     } catch (err) {
       console.warn('Could not open WhatsApp:', err);
@@ -124,21 +125,39 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
       const controller = new AbortController();
       const abortTimer = setTimeout(() => controller.abort(), 12000);
 
-      const res = await fetch(apiUrl('/api/otp/email/send'), {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: cleanEmail,
-          fullName,
-          destinationOrPackage
-        }),
-        signal: controller.signal,
-        keepalive: true
-      });
+      let res: Response;
+      try {
+        res = await fetch(apiUrl('/api/otp/email/send'), {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            email: cleanEmail,
+            fullName,
+            destinationOrPackage
+          }),
+          signal: controller.signal,
+          keepalive: true
+        });
+      } catch (firstErr) {
+        console.warn('Primary OTP send failed, trying relative /api/otp/email/send fallback...', firstErr);
+        res = await fetch('/api/otp/email/send', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            email: cleanEmail,
+            fullName,
+            destinationOrPackage
+          }),
+          signal: controller.signal,
+          keepalive: true
+        });
+      }
       clearTimeout(abortTimer);
 
       const isJson = res.headers.get('content-type')?.includes('application/json');
@@ -234,20 +253,37 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
       const controller = new AbortController();
       const abortTimer = setTimeout(() => controller.abort(), 12000);
 
-      const res = await fetch(apiUrl('/api/otp/email/verify'), {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json' 
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          otp: code
-        }),
-        signal: controller.signal,
-        keepalive: true
-      });
+      let res: Response;
+      try {
+        res = await fetch(apiUrl('/api/otp/email/verify'), {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json' 
+          },
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            otp: code
+          }),
+          signal: controller.signal,
+          keepalive: true
+        });
+      } catch (firstErr) {
+        console.warn('Primary OTP verify failed, trying relative /api/otp/email/verify fallback...', firstErr);
+        res = await fetch('/api/otp/email/verify', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json' 
+          },
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            otp: code
+          }),
+          signal: controller.signal,
+          keepalive: true
+        });
+      }
       clearTimeout(abortTimer);
 
       const isJson = res.headers.get('content-type')?.includes('application/json');
@@ -367,7 +403,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
                       className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-xs transition shadow cursor-pointer active:scale-95"
                     >
                       <MessageCircle size={16} />
-                      <span>Chat on WhatsApp (+91 97893 54321)</span>
+                      <span>Chat on WhatsApp ({COMPANY_PHONE_INTL})</span>
                     </button>
                     <button
                       type="button"

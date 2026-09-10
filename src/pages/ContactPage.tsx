@@ -50,27 +50,46 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
     setLoading(true);
 
     try {
-      const res = await fetch(apiUrl('/api/enquiries'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          type: 'contact_message',
-          source: 'Website Enquiry',
-          fullName: formData.name.trim(),
-          phone: formData.phone.trim(),
-          email: formData.email.trim(),
-          destination: formData.subject,
-          specialRequirements: `Subject: ${formData.subject}. Message: ${formData.message}`
-        })
-      });
+      const payload = {
+        type: 'contact_message',
+        source: 'Website Enquiry',
+        fullName: formData.name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        destination: formData.subject,
+        specialRequirements: `Subject: ${formData.subject}. Message: ${formData.message}`
+      };
 
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.success && data.referenceId) {
-        setSubmittedRef(data.referenceId);
-        setSubmitted(true);
+      let res: Response | null = null;
+      try {
+        res = await fetch(apiUrl('/api/enquiries'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (firstErr) {
+        console.warn('Primary fetch failed, trying relative /api/enquiries fallback...', firstErr);
+        res = await fetch('/api/enquiries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      if (res && res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.success && data.referenceId) {
+          setSubmittedRef(data.referenceId);
+          setSubmitted(true);
+          return;
+        } else {
+          setErrorMessage(data.error || 'Unable to register your enquiry on the booking server. Please verify your details or tap the WhatsApp button below to submit directly.');
+        }
+      } else if (res) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMessage(data.error || `Server responded with status ${res.status}. Please connect with us directly via WhatsApp.`);
       } else {
-        setErrorMessage(data.error || 'Unable to register your enquiry on the booking server. Please verify your details or tap the WhatsApp button below to submit directly.');
+        setErrorMessage('Network connection error. Please connect with our Coimbatore travel desk directly via WhatsApp below.');
       }
     } catch (err) {
       console.error('Backend enquiry error', err);
@@ -236,13 +255,13 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                   </p>
                   <div className="pt-4 flex flex-wrap justify-center gap-3">
                     <a
-                      href={`https://wa.me/919789354321?text=${encodeURIComponent(`Hello Happy Journey Holidays, I just submitted an enquiry on your website (Ref: ${submittedRef || ''}). Could you please share the details?`)}`}
+                      href={createWhatsAppLink(`Hello Happy Journey Holidays, I just submitted an enquiry on your website (Ref: ${submittedRef || ''}). Could you please share the details?`)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition flex items-center gap-2 shadow-sm"
                     >
                       <MessageCircle size={15} />
-                      <span>Chat on WhatsApp</span>
+                      <span>Chat on WhatsApp ({COMPANY_PHONE_INTL})</span>
                     </a>
                     <button
                       onClick={() => {
@@ -268,7 +287,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                         className="inline-flex items-center gap-1.5 font-bold text-emerald-400 hover:text-emerald-300 underline"
                       >
                         <MessageCircle size={13} />
-                        <span>Send directly via WhatsApp (+91 97893 54321)</span>
+                        <span>Send directly via WhatsApp ({COMPANY_PHONE_INTL})</span>
                       </a>
                     </div>
                   )}

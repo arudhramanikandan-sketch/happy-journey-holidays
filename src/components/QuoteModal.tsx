@@ -15,7 +15,7 @@ import {
   MessageSquare 
 } from 'lucide-react';
 import { QuoteRequestData } from '../types';
-import { createQuickQuoteWhatsAppLink, COMPANY_PHONE } from '../utils/whatsapp';
+import { createQuickQuoteWhatsAppLink, COMPANY_PHONE, COMPANY_PHONE_INTL } from '../utils/whatsapp';
 import { apiUrl } from '../utils/apiConfig';
 
 interface QuoteModalProps {
@@ -81,30 +81,50 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
     setLoading(true);
     try {
-      const res = await fetch(apiUrl('/api/enquiries'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          type: 'package_quote',
-          source: 'Website Enquiry',
-          fullName: formData.fullName.trim(),
-          phone: formData.phone.trim(),
-          email: cleanEmail,
-          destination: formData.destinationOrService.trim(),
-          packageName: formData.destinationOrService.trim(),
-          travelDate: formData.travelDate,
-          travelers: formData.travelers,
-          adults: formData.travelers.includes('1 Solo') ? 1 : 2,
-          specialRequirements: formData.notes
-        })
-      });
+      const payload = {
+        type: 'package_quote',
+        source: 'Website Enquiry',
+        fullName: formData.fullName.trim(),
+        phone: formData.phone.trim(),
+        email: cleanEmail,
+        destination: formData.destinationOrService.trim(),
+        packageName: formData.destinationOrService.trim(),
+        travelDate: formData.travelDate,
+        travelers: formData.travelers,
+        adults: formData.travelers.includes('1 Solo') ? 1 : 2,
+        specialRequirements: formData.notes
+      };
 
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.success && data.referenceId) {
-        setSubmittedRef(data.referenceId);
+      let res: Response | null = null;
+      try {
+        res = await fetch(apiUrl('/api/enquiries'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (firstErr) {
+        console.warn('Primary fetch failed, trying relative /api/enquiries fallback...', firstErr);
+        res = await fetch('/api/enquiries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      if (res && res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.success && data.referenceId) {
+          setSubmittedRef(data.referenceId);
+          setErrorMessage('');
+          return;
+        } else {
+          setErrorMessage(data.error || 'Unable to register your enquiry on the booking server. Please verify your details or tap the WhatsApp button below to submit directly.');
+        }
+      } else if (res) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMessage(data.error || `Server returned status ${res.status}. Please connect via WhatsApp.`);
       } else {
-        setErrorMessage(data.error || 'Unable to register your enquiry on the booking server. Please verify your details or tap the WhatsApp button below to submit directly.');
+        setErrorMessage('Network connection error connecting to reservation server. Please tap the WhatsApp button below to send your details directly.');
       }
     } catch (err: any) {
       console.error('Customer enquiry submission error:', err);
@@ -220,7 +240,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                     className="inline-flex items-center gap-1.5 font-bold text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
                   >
                     <MessageSquare size={13} />
-                    <span>Send details via WhatsApp (+91 97893 54321)</span>
+                    <span>Send details via WhatsApp ({COMPANY_PHONE_INTL})</span>
                   </button>
                 </div>
               )}
