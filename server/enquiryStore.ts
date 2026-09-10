@@ -136,7 +136,7 @@ export interface CreateEnquiryInput {
 export async function createNewCustomerEnquiry(input: CreateEnquiryInput): Promise<EnquiryRecord> {
   const enquiries = loadEnquiries();
 
-  // Deduplication check: prevent duplicate submissions caused by double-clicking submit within 25 seconds
+  // Deduplication check: prevent duplicate submissions caused by double-clicking submit within 5 seconds
   const cleanPhone = (input.phone || '').replace(/[^0-9]/g, '');
   const cleanFullName = (input.fullName || '').trim().toLowerCase();
 
@@ -145,7 +145,8 @@ export async function createNewCustomerEnquiry(input: CreateEnquiryInput): Promi
     const isSamePhone = existingPhone.length >= 10 && cleanPhone.length >= 10 && existingPhone.slice(-10) === cleanPhone.slice(-10);
     const isSameName = e.customerName.trim().toLowerCase() === cleanFullName;
     const timeDiffMs = Date.now() - new Date(e.createdAt).getTime();
-    return (isSamePhone || isSameName) && timeDiffMs < 25000 && timeDiffMs >= 0;
+    // Only deduplicate if both phone and destination match and sent within 5 seconds (rapid double-click)
+    return isSamePhone && isSameName && (e.destination === input.destination) && timeDiffMs < 5000 && timeDiffMs >= 0;
   });
 
   if (recentDuplicate) {
@@ -439,3 +440,72 @@ export async function resyncEnquiry(id: string): Promise<{ success: boolean; enq
     message: sheetRes.message
   };
 }
+
+export function syncEnquiriesBatch(records: any[]): { insertedCount: number; enquiries: EnquiryRecord[] } {
+  if (!Array.isArray(records) || records.length === 0) {
+    return { insertedCount: 0, enquiries: loadEnquiries() };
+  }
+
+  const enquiries = loadEnquiries();
+  let inserted = 0;
+
+  for (const raw of records) {
+    if (!raw) continue;
+    const ref = raw.enquiryReference || raw.id || `HJH-${Math.floor(100000 + Math.random() * 900000)}`;
+    
+    // Check if record already exists in database
+    const exists = enquiries.some(e => 
+      e.id === ref || 
+      e.enquiryReference === ref || 
+      (e.phoneNumber && raw.phone && e.phoneNumber.replace(/[^0-9]/g, '').slice(-10) === String(raw.phone || raw.phoneNumber).replace(/[^0-9]/g, '').slice(-10) && 
+       Math.abs(new Date(e.createdAt).getTime() - new Date(raw.createdAt || Date.now()).getTime()) < 3000)
+    );
+
+    if (!exists) {
+      const now = raw.createdAt ? new Date(raw.createdAt) : new Date();
+      const dateStr = raw.date || now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+      const timeStr = raw.time || now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+
+      const newRecord: EnquiryRecord = {
+        id: ref,
+        enquiryReference: ref,
+        source: raw.source || 'Website Enquiry',
+        date: dateStr,
+        time: timeStr,
+        customerName: (raw.customerName || raw.fullName || raw.name || 'Valued Traveler').trim(),
+        phoneNumber: (raw.phoneNumber || raw.phone || raw.mobile || 'N/A').trim(),
+        email: raw.email ? String(raw.email).trim() : undefined,
+        destination: raw.destination || raw.packageName || 'Holiday Enquiry',
+        packageName: raw.packageName || raw.destination,
+        category: raw.category || 'General',
+        travelDate: raw.travelDate || undefined,
+        returnDate: raw.returnDate || undefined,
+        numberOfTravellers: raw.numberOfTravellers || (raw.adults ? `${raw.adults} Adults${raw.children ? `, ${raw.children} Children` : ''}` : '2 Adults'),
+        adults: raw.adults,
+        children: raw.children,
+        budget: raw.budget,
+        tripType: raw.tripType,
+        departureCity: raw.departureCity,
+        specialRequirements: raw.specialRequirements || raw.notes || raw.message || '',
+        customerMessage: raw.customerMessage || raw.notes || raw.specialRequirements || raw.message || 'Direct inquiry from website',
+        phoneVerified: Boolean(raw.phoneVerified),
+        status: raw.status || 'NEW',
+        createdAt: raw.createdAt || now.toISOString(),
+        updatedAt: now.toISOString(),
+        googleSheetStatus: 'pending',
+        emailNotificationStatus: 'pending'
+      };
+
+      enquiries.unshift(newRecord);
+      inserted++;
+    }
+  }
+
+  if (inserted > 0) {
+    saveEnquiries(enquiries);
+    console.log(`[Enquiry Store] Synced ${inserted} offline/cached enquiry records into database.`);
+  }
+
+  return { insertedCount: inserted, enquiries };
+}
+

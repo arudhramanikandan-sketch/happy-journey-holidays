@@ -30,6 +30,7 @@ import {
   updateEnquiryNotes,
   deleteEnquiryRecord,
   clearAllEnquiries,
+  syncEnquiriesBatch,
   resyncEnquiry,
   normalizeStatus,
   EnquiryStatus,
@@ -709,12 +710,17 @@ async function startServer() {
         verifiedEmail
       } = req.body;
 
-      const fullName = req.body.fullName || req.body.customerName;
-      const phone = req.body.phone || req.body.phoneNumber;
-      const message = req.body.message || req.body.customerMessage || req.body.specialRequirements;
+      const rawName = req.body.fullName || req.body.customerName || req.body.name || req.body.contactName;
+      const rawPhone = req.body.phone || req.body.phoneNumber || req.body.mobile || req.body.whatsapp || req.body.contactNumber;
+      const rawMessage = req.body.message || req.body.customerMessage || req.body.specialRequirements || req.body.notes;
 
-      if (!fullName || !phone) {
-        return res.status(400).json({ error: 'Customer Name and WhatsApp / Phone number are required.' });
+      // Ensure fallback if one contact method is provided
+      const fullName = (rawName || (email ? email.split('@')[0] : 'Valued Traveler')).trim();
+      const phone = (rawPhone || (email ? email : 'Website Contact')).trim();
+      const message = rawMessage ? String(rawMessage).trim() : '';
+
+      if (!fullName && !phone && !email) {
+        return res.status(400).json({ error: 'Customer Name, WhatsApp / Phone number or Email is required.' });
       }
 
       // Check verification token (Email OTP or Mobile OTP token) if provided
@@ -732,14 +738,17 @@ async function startServer() {
         }
       }
 
+      const targetDestination = destination || packageName || req.body.destinationOrService || 'Holiday Enquiry';
+      const targetPackageName = packageName || destination || targetDestination;
+
       const newRecord = await createNewCustomerEnquiry({
         type,
         source: source || req.body.source || 'Website Enquiry',
         fullName,
         phone,
         email,
-        destination,
-        packageName,
+        destination: targetDestination,
+        packageName: targetPackageName,
         category,
         travelDate,
         returnDate,
@@ -766,6 +775,28 @@ async function startServer() {
     } catch (error: any) {
       console.error('[Error Recording Customer Enquiry]:', error);
       return res.status(500).json({ error: 'Internal server error while recording enquiry.' });
+    }
+  });
+
+  // Batch sync pending offline/cached customer enquiries into durable storage
+  app.post(['/api/enquiries/sync-batch', '/api/enquiries/sync-batch/', '/api/admin/enquiries/sync-batch'], async (req, res) => {
+    try {
+      const records = req.body.enquiries || req.body.records || (Array.isArray(req.body) ? req.body : []);
+      if (!Array.isArray(records) || records.length === 0) {
+        return res.json({ success: true, insertedCount: 0, message: 'No records to synchronize.' });
+      }
+
+      const { insertedCount, enquiries } = syncEnquiriesBatch(records);
+      console.log(`[Batch Sync Completed] Successfully synced ${insertedCount} enquiries.`);
+      return res.json({
+        success: true,
+        insertedCount,
+        totalEnquiries: enquiries.length,
+        message: `Synchronized ${insertedCount} enquiry record(s) into database.`
+      });
+    } catch (err: any) {
+      console.error('[Batch Sync Error]:', err);
+      return res.status(500).json({ error: 'Failed to sync batch enquiries.' });
     }
   });
 

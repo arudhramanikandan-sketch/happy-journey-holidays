@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "id": "HJH-981501",
+    "enquiryReference": "HJH-981501",
+    "source": "Website Enquiry",
+    "date": "10/9/2026",
+    "time": "10:55 pm",
+    "customerName": "Test Customer",
+    "phoneNumber": "9876543210",
+    "email": "test@gmail.com",
+    "destination": "Ooty",
+    "packageName": "Ooty",
+    "category": "Domestic",
+    "travelDate": "2026-10-15",
+    "returnDate": "2026-10-18",
+    "numberOfTravellers": "2 Adults, 1 Child",
+    "adults": 2,
+    "children": 1,
+    "budget": "₹50,000 - ₹1,00,000 per couple",
+    "tripType": "Family Holiday",
+    "departureCity": "Coimbatore",
+    "specialRequirements": "Need nice scenic view",
+    "customerMessage": "Need nice scenic view | Need nice scenic view | Budget: ₹50,000 - ₹1,00,000 per couple | Departure City: Coimbatore | Trip Style: Family Holiday",
+    "phoneVerified": true,
+    "status": "NEW",
+    "createdAt": "2026-09-10T17:25:53.753Z",
+    "updatedAt": "2026-09-10T17:25:53.753Z",
+    "googleSheetStatus": "pending",
+    "emailNotificationStatus": "sent",
+    "googleSheetError": "Google Sheets credentials (GOOGLE_SHEETS_SPREADSHEET_ID & GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_SHEETS_WEBHOOK_URL) are not set in environment."
+  }
+]
