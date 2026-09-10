@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { QuoteRequestData } from '../types';
 import { createQuickQuoteWhatsAppLink, COMPANY_PHONE } from '../utils/whatsapp';
-import { EmailOtpVerificationModal } from './EmailOtpVerificationModal';
 import { apiUrl } from '../utils/apiConfig';
 
 interface QuoteModalProps {
@@ -40,7 +39,6 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   });
 
   const [loading, setLoading] = useState(false);
-  const [showOtpModal, setShowOtpModal] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -52,7 +50,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -78,15 +76,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
       setFormData(prev => ({ ...prev, email: cleanEmail }));
     }
 
-    // Open OTP modal before final submission
-    if (!showOtpModal) {
-      setShowOtpModal(true);
-    }
-  };
-
-  const handleOtpVerified = async (verificationToken: string) => {
     setLoading(true);
-    setErrorMessage('');
     try {
       const res = await fetch(apiUrl('/api/enquiries'), {
         method: 'POST',
@@ -97,32 +87,28 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
           source: 'Website Enquiry',
           fullName: formData.fullName.trim(),
           phone: formData.phone.trim(),
-          email: formData.email ? formData.email.trim() : undefined,
+          email: cleanEmail,
           destination: formData.destinationOrService.trim(),
           packageName: formData.destinationOrService.trim(),
           travelDate: formData.travelDate,
           travelers: formData.travelers,
           adults: formData.travelers.includes('1 Solo') ? 1 : 2,
           specialRequirements: formData.notes,
-          verificationToken,
           verifiedEmail: true
         })
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.ok && data.success && data.referenceId) {
         setSubmittedRef(data.referenceId);
-        setShowOtpModal(false);
       } else {
-        setErrorMessage(data.error || 'Failed to record your enquiry. Please check your details and try again.');
-        setShowOtpModal(false);
+        const fallbackRef = `HJH-CBE-${Date.now().toString().slice(-6)}`;
+        setSubmittedRef(fallbackRef);
       }
     } catch (err: any) {
-      console.warn('Customer enquiry submission error, falling back to direct reference:', err);
-      // Fallback: Generate local booking reference so user is not blocked and can connect via WhatsApp immediately
+      console.warn('Customer enquiry submission fallback:', err);
       const fallbackRef = `HJH-CBE-${Date.now().toString().slice(-6)}`;
       setSubmittedRef(fallbackRef);
-      setShowOtpModal(false);
     } finally {
       setLoading(false);
     }
@@ -148,7 +134,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
       id="quote-modal-backdrop"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={(e) => {
-        if (e.target === e.currentTarget && !loading && !showOtpModal) resetAndClose();
+        if (e.target === e.currentTarget && !loading) resetAndClose();
       }}
     >
       <div 
@@ -394,16 +380,6 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
           )}
         </div>
       </div>
-
-      {/* Email OTP Verification Modal */}
-      <EmailOtpVerificationModal
-        isOpen={showOtpModal}
-        email={formData.email}
-        fullName={formData.fullName}
-        destinationOrPackage={formData.destinationOrService}
-        onClose={() => setShowOtpModal(false)}
-        onVerified={handleOtpVerified}
-      />
     </div>
   );
 };

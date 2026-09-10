@@ -8,7 +8,7 @@
  *    Routes to the live Cloud Run backend server running Express + Brevo + Google Sheets.
  */
 
-export const BACKEND_URL = 'https://ais-dev-jbax7iudswuzuusnwrxu3x-892923131955.asia-southeast1.run.app';
+export const BACKEND_URL = '';
 
 export function getApiBaseUrl(): string {
   // If explicitly provided via Vite build environment
@@ -30,7 +30,8 @@ export function getApiBaseUrl(): string {
       return '';
     }
 
-    // On external live website (e.g. happyjourneyholidays.com, GitHub Pages, Vercel)
+    // On external live website (e.g. happyjourneyholidays.com, GitHub Pages)
+    // Uses configured VITE_API_BASE_URL if set, or empty to fallback gracefully
     return BACKEND_URL;
   }
 

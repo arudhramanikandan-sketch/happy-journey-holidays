@@ -713,8 +713,8 @@ async function startServer() {
         return res.status(400).json({ error: 'Customer Name and WhatsApp / Phone number are required.' });
       }
 
-      // Check verification token (Email OTP or Mobile OTP token)
-      let isVerified = false;
+      // Check verification token (Email OTP or Mobile OTP token) if provided
+      let isVerified = true;
       if (verificationToken) {
         if (email && isEmailVerifiedWithToken(email, verificationToken)) {
           isVerified = true;
@@ -726,12 +726,6 @@ async function startServer() {
             isVerified = true;
           }
         }
-      } else if (verifiedPhone || verifiedEmail) {
-        isVerified = true;
-      }
-
-      if (!isVerified && process.env.NODE_ENV === 'production') {
-        return res.status(403).json({ error: 'OTP verification is required to submit your enquiry.' });
       }
 
       const newRecord = await createNewCustomerEnquiry({

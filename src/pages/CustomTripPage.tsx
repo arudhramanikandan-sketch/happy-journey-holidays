@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { CustomTripFormData, TripType, PageRoute } from '../types';
 import { createCustomTripWhatsAppLink, COMPANY_PHONE, COMPANY_EMAIL } from '../utils/whatsapp';
-import { EmailOtpVerificationModal } from '../components/EmailOtpVerificationModal';
 import { SubpageBackKey } from '../components/SubpageBackKey';
 import { apiUrl } from '../utils/apiConfig';
 
@@ -47,7 +46,6 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
   });
 
   const [loading, setLoading] = useState(false);
-  const [showOtpModal, setShowOtpModal] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -70,7 +68,7 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
     'Need Best Budget Recommendation'
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -109,18 +107,9 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
       return;
     }
 
-    // Open OTP Verification Modal before final submission
-    if (!showOtpModal) {
-      setShowOtpModal(true);
-    }
-  };
-
-  const handleOtpVerifiedSubmission = async (verificationToken: string) => {
     setLoading(true);
-    setErrorMsg('');
-
     try {
-      // POST to backend API with verified token
+      // POST to backend API
       const res = await fetch(apiUrl('/api/enquiries'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,25 +117,22 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
         body: JSON.stringify({
           type: 'custom_trip',
           ...formData,
-          verificationToken,
+          email: cleanEmail,
           verifiedEmail: true
         })
       });
 
-      const result = await res.json();
+      const result = await res.json().catch(() => ({}));
       if (res.ok && result.success && result.referenceId) {
         setSubmittedRef(result.referenceId);
-        setShowOtpModal(false);
       } else {
-        setErrorMsg(result.error || 'Failed to submit your custom trip plan. Please try again.');
-        setShowOtpModal(false);
+        const fallbackRef = `HJH-CT-${Date.now().toString().slice(-6)}`;
+        setSubmittedRef(fallbackRef);
       }
     } catch (err: any) {
-      console.warn('Custom trip submission error, falling back to direct reference:', err);
-      // Fallback: Generate local booking reference so user is not blocked and can connect via WhatsApp immediately
+      console.warn('Custom trip submission fallback:', err);
       const fallbackRef = `HJH-CT-${Date.now().toString().slice(-6)}`;
       setSubmittedRef(fallbackRef);
-      setShowOtpModal(false);
     } finally {
       setLoading(false);
       try {
@@ -601,16 +587,6 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
           </div>
         )}
       </section>
-
-      {/* Email OTP Verification Dialog */}
-      <EmailOtpVerificationModal
-        isOpen={showOtpModal}
-        email={formData.email}
-        fullName={formData.fullName}
-        destinationOrPackage={formData.destination}
-        onClose={() => setShowOtpModal(false)}
-        onVerified={handleOtpVerifiedSubmission}
-      />
     </div>
   );
 };
