@@ -25,7 +25,10 @@ import {
   Sparkles,
   ArrowUpDown,
   Send,
-  Loader2
+  Loader2,
+  Edit3,
+  Save,
+  UserCheck
 } from 'lucide-react';
 import { getStorageItem } from '../../utils/storage';
 import { apiUrl } from '../../utils/apiConfig';
@@ -64,6 +67,7 @@ export interface AdminEnquiry {
   specialRequirements?: string;
   customerMessage?: string;
   status: EnquiryStatus;
+  adminNotes?: string;
   createdAt: string;
   updatedAt: string;
   googleSheetStatus: 'synced' | 'pending' | 'failed' | 'not_configured';
@@ -97,6 +101,7 @@ interface GoogleSheetsConfig {
 }
 
 export const AdminEnquiriesManager: React.FC = () => {
+  const [activeView, setActiveView] = useState<'new_customers' | 'all_enquiries'>('new_customers');
   const [enquiries, setEnquiries] = useState<AdminEnquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +119,10 @@ export const AdminEnquiriesManager: React.FC = () => {
     whatsapp: 0
   });
   const [googleSheetsConfig, setGoogleSheetsConfig] = useState<GoogleSheetsConfig | null>(null);
+
+  // Notes state
+  const [notesInputs, setNotesInputs] = useState<Record<string, string>>({});
+  const [savingNotesId, setSavingNotesId] = useState<string | null>(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -134,8 +143,16 @@ export const AdminEnquiriesManager: React.FC = () => {
     fetchEnquiries();
   }, [selectedStatus, selectedCategory, selectedSource, selectedDateFilter]);
 
-  const fetchEnquiries = async () => {
-    setLoading(true);
+  // Live Auto-Refresh every 10 seconds so newly submitted customers appear without page reload
+  useEffect(() => {
+    const timer = setInterval(() => {
+      fetchEnquiries(true);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [searchTerm, selectedStatus, selectedCategory, selectedSource, selectedDateFilter]);
+
+  const fetchEnquiries = async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       const queryParams = new URLSearchParams();
@@ -165,15 +182,51 @@ export const AdminEnquiriesManager: React.FC = () => {
         setGoogleSheetsConfig(data.googleSheetsConfig);
       }
     } catch (err: any) {
-      setError(err.message || 'Error loading enquiries.');
+      if (!silent) {
+        setError(err.message || 'Error loading enquiries.');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchEnquiries();
+  };
+
+  const handleSaveNotes = async (id: string, notes: string) => {
+    setSavingNotesId(id);
+    try {
+      const token = getStorageItem('admin_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(apiUrl(`/api/admin/enquiries/${id}/notes`), {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ notes })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to update remarks.');
+      }
+
+      const data = await res.json();
+      setEnquiries(prev => prev.map(item => (item.id === id ? data.enquiry : item)));
+      if (activeEnquiry && activeEnquiry.id === id) {
+        setActiveEnquiry(data.enquiry);
+      }
+
+      setActionSuccessMsg(`Admin remarks saved for enquiry ${id}`);
+      setTimeout(() => setActionSuccessMsg(null), 3000);
+    } catch (err: any) {
+      setActionErrorMsg(`Failed to save remarks: ${err.message}`);
+      setTimeout(() => setActionErrorMsg(null), 4000);
+    } finally {
+      setSavingNotesId(null);
+    }
   };
 
   const handleStatusChange = async (id: string, newStatus: EnquiryStatus) => {
@@ -377,7 +430,7 @@ export const AdminEnquiriesManager: React.FC = () => {
         {/* Action Buttons */}
         <div className="flex items-center gap-2.5">
           <button
-            onClick={fetchEnquiries}
+            onClick={() => fetchEnquiries()}
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-[#002244] text-slate-200 border border-[#003e7e] hover:bg-[#002f5e] transition"
             title="Refresh Table"
@@ -423,8 +476,317 @@ export const AdminEnquiriesManager: React.FC = () => {
         </div>
       )}
 
-      {/* Status Counters Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+      {/* Sub-view Switcher Bar: New Customers vs All Enquiries */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#001329] border border-[#002B54] rounded-2xl p-2.5 shadow-md">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveView('new_customers')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+              activeView === 'new_customers'
+                ? 'bg-gradient-to-r from-amber-500 to-[#F27D26] text-white shadow-lg shadow-amber-950'
+                : 'text-slate-300 hover:text-white hover:bg-[#002447]'
+            }`}
+          >
+            <Sparkles size={14} className={activeView === 'new_customers' ? 'text-white' : 'text-amber-400'} />
+            <span>🌟 New Customers</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+              activeView === 'new_customers' ? 'bg-black/30 text-white' : 'bg-amber-950 text-amber-300 border border-amber-800'
+            }`}>
+              {statusCounts.new} Pending
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveView('all_enquiries')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+              activeView === 'all_enquiries'
+                ? 'bg-gradient-to-r from-sky-600 to-blue-600 text-white shadow-lg shadow-blue-950'
+                : 'text-slate-300 hover:text-white hover:bg-[#002447]'
+            }`}
+          >
+            <FileSpreadsheet size={14} className={activeView === 'all_enquiries' ? 'text-white' : 'text-sky-400'} />
+            <span>📋 All Customer Enquiries</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+              activeView === 'all_enquiries' ? 'bg-black/30 text-white' : 'bg-[#002b54] text-slate-300 border border-[#003d75]'
+            }`}>
+              {statusCounts.total} Total
+            </span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#000a17] border border-[#002B54] text-[11px] text-emerald-400">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span className="font-semibold">Live Database Auto-Sync Active (10s)</span>
+        </div>
+      </div>
+
+      {/* NEW CUSTOMERS VIEW */}
+      {activeView === 'new_customers' && (
+        <div className="space-y-4">
+          <div className="bg-gradient-to-r from-amber-950/40 via-[#001833] to-[#001024] border border-amber-800/50 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-950/80 border border-amber-700 flex items-center justify-center text-amber-300 font-bold">
+                <Users size={20} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>New Customer Submissions</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-700 font-black">
+                    {statusCounts.new} Pending Action
+                  </span>
+                </h4>
+                <p className="text-[11px] text-slate-300 mt-0.5">
+                  Direct submissions from both Website and Mobile View. Reply via WhatsApp or Call, add follow-up remarks, then update status to Contacted/Quoted.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* New Customers Grid */}
+          {(() => {
+            const newCustomers = enquiries.filter(e => e.status === 'NEW');
+            if (loading && newCustomers.length === 0) {
+              return (
+                <div className="bg-[#001329] border border-[#002B54] rounded-2xl p-12 text-center text-slate-400">
+                  <Loader2 size={24} className="animate-spin mx-auto text-[#F27D26] mb-2" />
+                  <p>Checking database for new customer enquiries...</p>
+                </div>
+              );
+            }
+
+            if (newCustomers.length === 0) {
+              return (
+                <div className="bg-[#001329] border border-[#002B54] rounded-2xl p-12 text-center text-slate-400 space-y-3">
+                  <div className="w-14 h-14 rounded-full bg-emerald-950/80 border border-emerald-800 text-emerald-400 flex items-center justify-center mx-auto">
+                    <CheckCircle2 size={28} />
+                  </div>
+                  <h4 className="text-base font-bold text-white">All Caught Up! No Pending "New" Customers</h4>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    All previous customer enquiries have been attended to and moved to Contacted, Quote Sent, or Confirmed.
+                  </p>
+                  <button
+                    onClick={() => setActiveView('all_enquiries')}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#002447] text-[#38B6FF] border border-[#00478a] hover:bg-[#003366] transition"
+                  >
+                    <span>View All Past Enquiries</span>
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {newCustomers.map((customer) => {
+                  const cleanPhone = customer.phoneNumber.replace(/[^0-9]/g, '');
+                  const waPhone = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
+                  const waText = encodeURIComponent(
+                    `Hello ${customer.customerName}, Happy Journey Holidays Coimbatore here! We received your enquiry [${customer.enquiryReference}] for ${customer.destination || 'your holiday trip'}. We would love to assist you with custom itinerary and special rates!`
+                  );
+                  const waLink = `https://wa.me/${waPhone}?text=${waText}`;
+
+                  const currentNotes = notesInputs[customer.id] !== undefined ? notesInputs[customer.id] : (customer.adminNotes || '');
+
+                  return (
+                    <div
+                      key={customer.id}
+                      className="bg-gradient-to-b from-[#001833] to-[#001024] border border-amber-700/60 rounded-2xl p-5 shadow-xl space-y-4 hover:border-amber-500/80 transition"
+                    >
+                      {/* Customer Card Header */}
+                      <div className="flex items-start justify-between gap-3 border-b border-[#002B54] pb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-base font-black text-white">{customer.customerName}</h4>
+                            <span className="font-mono text-xs font-bold text-amber-400 px-2 py-0.5 rounded-lg bg-amber-950/80 border border-amber-800">
+                              {customer.enquiryReference}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-400">
+                            <span className="flex items-center gap-1">
+                              <Clock size={11} className="text-slate-400" />
+                              <span>{customer.date} at {customer.time}</span>
+                            </span>
+                            <span>•</span>
+                            <span className="px-2 py-0.2 rounded-full bg-[#002447] text-[#38B6FF] border border-[#003e7e] font-semibold">
+                              {customer.source || 'Website Enquiry'}
+                            </span>
+                            <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold border ${getCategoryBadge(customer.category)}`}>
+                              {customer.category}
+                            </span>
+                          </div>
+                        </div>
+
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase bg-amber-950 text-amber-300 border border-amber-700">
+                          🟡 NEW LEAD
+                        </span>
+                      </div>
+
+                      {/* Direct Outreach Contact Buttons */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <a
+                          href={waLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow shadow-emerald-950 active:scale-95"
+                        >
+                          <Share2 size={14} />
+                          <span>WhatsApp: {customer.phoneNumber}</span>
+                        </a>
+
+                        <a
+                          href={`tel:${customer.phoneNumber}`}
+                          className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#002447] hover:bg-[#003366] text-sky-200 border border-[#00478a] text-xs font-bold transition active:scale-95"
+                        >
+                          <Phone size={14} className="text-sky-400" />
+                          <span>Call: {customer.phoneNumber}</span>
+                        </a>
+
+                        {customer.email && (
+                          <a
+                            href={`mailto:${customer.email}?subject=${encodeURIComponent(`Enquiry Quote [${customer.enquiryReference}] - Happy Journey Holidays`)}`}
+                            className="sm:col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-[#001b38] hover:bg-[#002852] text-slate-300 border border-[#002b54] text-xs font-medium transition"
+                          >
+                            <Mail size={13} className="text-[#F27D26]" />
+                            <span>Email: {customer.email}</span>
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Requirements Grid */}
+                      <div className="bg-[#000d1f] border border-[#002B54] rounded-xl p-3.5 grid grid-cols-2 gap-2.5 text-xs">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Destination:</span>
+                          <span className="font-bold text-[#F27D26]">{customer.destination || 'Not Specified'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Package:</span>
+                          <span className="font-bold text-white truncate block" title={customer.packageName}>
+                            {customer.packageName || customer.destination || 'Holiday Package'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Travel Date:</span>
+                          <span className="font-semibold text-slate-200">{customer.travelDate || 'Flexible'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">Travellers:</span>
+                          <span className="font-semibold text-slate-200">
+                            {customer.numberOfTravellers || `${customer.adults || 2} Adults`}
+                          </span>
+                        </div>
+                        {customer.budget && (
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Budget:</span>
+                            <span className="font-semibold text-amber-300">{customer.budget}</span>
+                          </div>
+                        )}
+                        {customer.departureCity && (
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">Departure:</span>
+                            <span className="font-semibold text-slate-200">{customer.departureCity}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Customer Message / Special Notes */}
+                      {(customer.specialRequirements || customer.customerMessage) && (
+                        <div className="bg-[#000a17] border border-[#002B54] rounded-xl p-3 text-xs">
+                          <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-slate-400 mb-1">
+                            <MessageSquare size={12} className="text-amber-400" />
+                            <span>Customer Message / Special Notes:</span>
+                          </div>
+                          <p className="text-slate-200 leading-relaxed italic whitespace-pre-wrap">
+                            "{customer.specialRequirements || customer.customerMessage}"
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Admin Remarks / Follow-up Notes Editor */}
+                      <div className="bg-[#000e1f] border border-[#002B54] rounded-xl p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold text-[#38B6FF] flex items-center gap-1">
+                            <Edit3 size={11} />
+                            <span>Admin Follow-up Remarks:</span>
+                          </span>
+                          {customer.updatedAt && (
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              Updated: {new Date(customer.updatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={currentNotes}
+                            onChange={(e) => setNotesInputs({ ...notesInputs, [customer.id]: e.target.value })}
+                            placeholder="Add follow-up remark (e.g., Called, shared quote, callback requested)..."
+                            className="flex-1 bg-[#001329] border border-[#002B54] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-[#38B6FF]"
+                          />
+                          <button
+                            onClick={() => handleSaveNotes(customer.id, currentNotes)}
+                            disabled={savingNotesId === customer.id}
+                            className="px-3 py-1.5 bg-[#002b54] hover:bg-[#003d75] text-[#38B6FF] border border-[#00478a] rounded-lg text-xs font-bold transition flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {savingNotesId === customer.id ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <Save size={12} />
+                            )}
+                            <span>Save</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Status Update & Actions Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#002B54]">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-slate-400">Update Status:</span>
+                          <select
+                            value={customer.status}
+                            disabled={isUpdatingStatus === customer.id}
+                            onChange={(e) => handleStatusChange(customer.id, e.target.value as EnquiryStatus)}
+                            className={`px-2.5 py-1 rounded-xl text-xs font-bold border outline-none cursor-pointer ${getStatusBadge(customer.status)}`}
+                          >
+                            <option value="NEW" className="bg-[#001329] text-amber-300">NEW</option>
+                            <option value="CONTACTED" className="bg-[#001329] text-sky-300">CONTACTED</option>
+                            <option value="QUOTE SENT" className="bg-[#001329] text-[#38B6FF]">QUOTE SENT</option>
+                            <option value="CONFIRMED" className="bg-[#001329] text-emerald-300">CONFIRMED</option>
+                            <option value="LOST / CANCELLED" className="bg-[#001329] text-rose-300">LOST / CANCELLED</option>
+                            <option value="CLOSED" className="bg-[#001329] text-slate-400">CLOSED</option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => setActiveEnquiry(customer)}
+                            className="px-2.5 py-1.5 rounded-lg bg-[#002244] text-[#38B6FF] hover:bg-[#003366] transition border border-[#003e7e] text-xs font-semibold flex items-center gap-1"
+                          >
+                            <Eye size={13} />
+                            <span>Details</span>
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(customer.id)}
+                            className="p-1.5 rounded-lg bg-rose-950/60 text-rose-300 hover:bg-rose-900 transition border border-rose-800"
+                            title="Delete Record"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ALL ENQUIRIES VIEW */}
+      {activeView === 'all_enquiries' && (
+        <div className="space-y-6">
+          {/* Status Counters Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
         <button
           onClick={() => setSelectedStatus('All')}
           className={`p-3 rounded-2xl border text-left transition ${
@@ -848,6 +1210,8 @@ export const AdminEnquiriesManager: React.FC = () => {
           </div>
         </div>
       </div>
+    </div>
+  )}
 
       {/* ENQUIRY DETAILS MODAL / DRAWER */}
       {activeEnquiry && (
@@ -1054,6 +1418,47 @@ export const AdminEnquiriesManager: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Admin Follow-up Remarks & Notes */}
+              <div className="bg-[#000e1f] border border-[#002B54] rounded-2xl p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Edit3 size={15} className="text-[#38B6FF]" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#38B6FF]">
+                      Admin Follow-up Remarks & Notes
+                    </span>
+                  </div>
+                  {activeEnquiry.updatedAt && (
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      Last updated: {new Date(activeEnquiry.updatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <textarea
+                    rows={3}
+                    value={notesInputs[activeEnquiry.id] !== undefined ? notesInputs[activeEnquiry.id] : (activeEnquiry.adminNotes || '')}
+                    onChange={(e) => setNotesInputs({ ...notesInputs, [activeEnquiry.id]: e.target.value })}
+                    placeholder="Enter notes (e.g., Called customer at 4 PM, shared itinerary on WhatsApp, awaiting hotel confirmation)..."
+                    className="w-full p-3 bg-[#001329] border border-[#002B54] rounded-xl text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-[#38B6FF] focus:border-transparent outline-none resize-none leading-relaxed"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => handleSaveNotes(activeEnquiry.id, notesInputs[activeEnquiry.id] !== undefined ? notesInputs[activeEnquiry.id] : (activeEnquiry.adminNotes || ''))}
+                      disabled={savingNotesId === activeEnquiry.id}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-[#002b54] text-[#38B6FF] border border-[#00478a] hover:bg-[#003d75] transition disabled:opacity-50"
+                    >
+                      {savingNotesId === activeEnquiry.id ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Save size={13} />
+                      )}
+                      <span>Save Remarks</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               {/* Submission Date & Time Audit */}
               <div className="p-3 bg-[#000a17] border border-[#002B54] rounded-xl text-xs flex items-center justify-between text-slate-400">

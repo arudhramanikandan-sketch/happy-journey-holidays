@@ -22,7 +22,8 @@ import {
   Compass,
   Globe,
   LayoutDashboard,
-  Package
+  Package,
+  Users
 } from 'lucide-react';
 import { Logo } from '../../components/Logo';
 import { AdminPackageManager } from './AdminPackageManager';
@@ -772,13 +773,13 @@ export const AdminPortal: React.FC<{ onNavigateHome: () => void }> = ({ onNaviga
                     : 'text-slate-400 hover:text-slate-200 hover:bg-[#001c38]'
                 }`}
               >
-                <FileSpreadsheet size={15} className={activeAdminTab === 'enquiries' ? 'text-white' : 'text-emerald-400'} />
-                <span>Customer Enquiries</span>
+                <Users size={15} className={activeAdminTab === 'enquiries' ? 'text-white' : 'text-emerald-400'} />
+                <span>Customer Details (New Customers)</span>
                 {dashboardData?.recentEnquiriesCount !== undefined && (
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
                     activeAdminTab === 'enquiries' ? 'bg-black/25 text-white' : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
                   }`}>
-                    {dashboardData.recentEnquiriesCount}
+                    {dashboardData.recentEnquiriesCount} New
                   </span>
                 )}
               </button>

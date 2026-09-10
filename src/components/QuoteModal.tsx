@@ -11,7 +11,8 @@ import {
   MapPin, 
   Users, 
   Sparkles,
-  Loader2 
+  Loader2,
+  MessageSquare 
 } from 'lucide-react';
 import { QuoteRequestData } from '../types';
 import { createQuickQuoteWhatsAppLink, COMPANY_PHONE } from '../utils/whatsapp';
@@ -76,6 +77,8 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
       setFormData(prev => ({ ...prev, email: cleanEmail }));
     }
 
+    if (loading) return; // Prevent double-clicking
+
     setLoading(true);
     try {
       const res = await fetch(apiUrl('/api/enquiries'), {
@@ -93,8 +96,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
           travelDate: formData.travelDate,
           travelers: formData.travelers,
           adults: formData.travelers.includes('1 Solo') ? 1 : 2,
-          specialRequirements: formData.notes,
-          verifiedEmail: true
+          specialRequirements: formData.notes
         })
       });
 
@@ -102,13 +104,11 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
       if (res.ok && data.success && data.referenceId) {
         setSubmittedRef(data.referenceId);
       } else {
-        const fallbackRef = `HJH-CBE-${Date.now().toString().slice(-6)}`;
-        setSubmittedRef(fallbackRef);
+        setErrorMessage(data.error || 'Unable to register your enquiry on the booking server. Please verify your details or tap the WhatsApp button below to submit directly.');
       }
     } catch (err: any) {
-      console.warn('Customer enquiry submission fallback:', err);
-      const fallbackRef = `HJH-CBE-${Date.now().toString().slice(-6)}`;
-      setSubmittedRef(fallbackRef);
+      console.error('Customer enquiry submission error:', err);
+      setErrorMessage('Network connection error connecting to reservation server. Please tap the WhatsApp button below to send your details directly.');
     } finally {
       setLoading(false);
     }
@@ -212,8 +212,16 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             /* Form View */
             <form onSubmit={handleSubmit} className="space-y-4">
               {errorMessage && (
-                <div className="p-3 bg-red-950/60 text-red-300 text-xs rounded-lg border border-red-800">
-                  {errorMessage}
+                <div className="p-3.5 bg-red-950/60 text-red-200 text-xs rounded-xl border border-red-800 space-y-2">
+                  <p>{errorMessage}</p>
+                  <button
+                    type="button"
+                    onClick={handleWhatsAppDirect}
+                    className="inline-flex items-center gap-1.5 font-bold text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
+                  >
+                    <MessageSquare size={13} />
+                    <span>Send details via WhatsApp (+91 97893 54321)</span>
+                  </button>
                 </div>
               )}
 

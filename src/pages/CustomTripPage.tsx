@@ -18,7 +18,8 @@ import {
   Heart,
   Briefcase,
   HelpCircle,
-  Compass
+  Compass,
+  MessageSquare
 } from 'lucide-react';
 import { CustomTripFormData, TripType, PageRoute } from '../types';
 import { createCustomTripWhatsAppLink, COMPANY_PHONE, COMPANY_EMAIL } from '../utils/whatsapp';
@@ -107,6 +108,8 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
       return;
     }
 
+    if (loading) return; // Prevent double-clicking
+
     setLoading(true);
     try {
       // POST to backend API
@@ -117,8 +120,7 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
         body: JSON.stringify({
           type: 'custom_trip',
           ...formData,
-          email: cleanEmail,
-          verifiedEmail: true
+          email: cleanEmail
         })
       });
 
@@ -126,13 +128,11 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
       if (res.ok && result.success && result.referenceId) {
         setSubmittedRef(result.referenceId);
       } else {
-        const fallbackRef = `HJH-CT-${Date.now().toString().slice(-6)}`;
-        setSubmittedRef(fallbackRef);
+        setErrorMsg(result.error || 'Unable to register your custom trip with the booking server. Please verify your details or tap WhatsApp to submit directly.');
       }
     } catch (err: any) {
-      console.warn('Custom trip submission fallback:', err);
-      const fallbackRef = `HJH-CT-${Date.now().toString().slice(-6)}`;
-      setSubmittedRef(fallbackRef);
+      console.error('Custom trip submission error:', err);
+      setErrorMsg('Network error connecting to booking server. Please check your internet connection or tap WhatsApp below to send your itinerary request directly.');
     } finally {
       setLoading(false);
       try {
@@ -287,8 +287,16 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
             </div>
 
             {errorMsg && (
-              <div className="p-3.5 bg-red-950/80 text-red-300 text-xs rounded-xl border border-red-800">
-                {errorMsg}
+              <div className="p-4 bg-red-950/80 text-red-200 text-xs rounded-xl border border-red-800 space-y-2">
+                <p className="font-semibold">{errorMsg}</p>
+                <button
+                  type="button"
+                  onClick={handleWhatsAppDispatch}
+                  className="inline-flex items-center gap-1.5 font-bold text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
+                >
+                  <MessageSquare size={13} />
+                  <span>Send your itinerary plan directly via WhatsApp (+91 97893 54321)</span>
+                </button>
               </div>
             )}
 

@@ -27,6 +27,7 @@ import {
   getAllEnquiries,
   getEnquiryById,
   updateEnquiryStatus,
+  updateEnquiryNotes,
   deleteEnquiryRecord,
   resyncEnquiry,
   normalizeStatus,
@@ -687,8 +688,7 @@ async function startServer() {
     try {
       const {
         type = 'custom_trip',
-        fullName,
-        phone,
+        source,
         email,
         destination,
         packageName,
@@ -702,12 +702,15 @@ async function startServer() {
         tripType,
         departureCity,
         specialRequirements,
-        message,
         notes,
         verificationToken,
         verifiedPhone,
         verifiedEmail
       } = req.body;
+
+      const fullName = req.body.fullName || req.body.customerName;
+      const phone = req.body.phone || req.body.phoneNumber;
+      const message = req.body.message || req.body.customerMessage || req.body.specialRequirements;
 
       if (!fullName || !phone) {
         return res.status(400).json({ error: 'Customer Name and WhatsApp / Phone number are required.' });
@@ -730,6 +733,7 @@ async function startServer() {
 
       const newRecord = await createNewCustomerEnquiry({
         type,
+        source: source || req.body.source || 'Website Enquiry',
         fullName,
         phone,
         email,
@@ -949,6 +953,32 @@ async function startServer() {
     } catch (err: any) {
       console.error('[Admin Enquiry Status Update Error]:', err);
       res.status(500).json({ error: 'Failed to update enquiry status.' });
+    }
+  });
+
+  // Update admin follow-up notes/remarks (Admin only)
+  app.patch('/api/admin/enquiries/:id/notes', requireAdminAuth, (req, res) => {
+    try {
+      const clientIp = getClientIp(req);
+      const userAgent = req.headers['user-agent'];
+      const id = req.params.id;
+      const { notes } = req.body;
+
+      const updated = updateEnquiryNotes(id, typeof notes === 'string' ? notes : '');
+      if (!updated) {
+        return res.status(404).json({ error: 'Enquiry not found for notes update.' });
+      }
+
+      logSecurityEvent(`Admin updated remarks on enquiry [${updated.enquiryReference}] (${updated.customerName})`, clientIp, 'SUCCESS', userAgent);
+
+      res.json({
+        success: true,
+        message: 'Admin remarks updated successfully.',
+        enquiry: updated
+      });
+    } catch (err: any) {
+      console.error('[Admin Enquiry Notes Update Error]:', err);
+      res.status(500).json({ error: 'Failed to update enquiry notes.' });
     }
   });
 

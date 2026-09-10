@@ -40,27 +40,41 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
 
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submittedRef, setSubmittedRef] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent double submit
+    setErrorMessage(null);
     setLoading(true);
 
     try {
-      await fetch(apiUrl('/api/enquiries'), {
+      const res = await fetch(apiUrl('/api/enquiries'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           type: 'contact_message',
-          fullName: formData.name,
-          phone: formData.phone,
-          email: formData.email,
+          source: 'Website Enquiry',
+          fullName: formData.name.trim(),
+          phone: formData.phone.trim(),
+          email: formData.email.trim(),
+          destination: formData.subject,
           specialRequirements: `Subject: ${formData.subject}. Message: ${formData.message}`
         })
       });
-      setSubmitted(true);
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success && data.referenceId) {
+        setSubmittedRef(data.referenceId);
+        setSubmitted(true);
+      } else {
+        setErrorMessage(data.error || 'Unable to register your enquiry on the booking server. Please verify your details or tap the WhatsApp button below to submit directly.');
+      }
     } catch (err) {
-      console.warn('Backend enquiry error', err);
-      setSubmitted(true);
+      console.error('Backend enquiry error', err);
+      setErrorMessage('Network connection error. Please connect with our Coimbatore travel desk directly via WhatsApp below.');
     } finally {
       setLoading(false);
     }
@@ -209,15 +223,31 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                     <CheckCircle2 size={36} />
                   </div>
                   <h3 className="font-heading font-extrabold text-2xl text-white">
-                    Message Sent Successfully!
+                    Enquiry Registered Successfully!
                   </h3>
+                  {submittedRef && (
+                    <div className="inline-block bg-[#000e1f] border border-[#003d75] px-4 py-2 rounded-xl text-center">
+                      <span className="text-[11px] text-slate-400 uppercase tracking-wider block">Your Booking Reference</span>
+                      <strong className="text-base text-[#38B6FF] font-mono font-bold tracking-wider">{submittedRef}</strong>
+                    </div>
+                  )}
                   <p className="text-xs sm:text-sm text-slate-300 max-w-md mx-auto">
-                    Thank you for contacting Happy Journey Holidays. Our team in Coimbatore will get back to you shortly.
+                    Thank you for contacting Happy Journey Holidays. Our Coimbatore travel desk has received your request and will reach out shortly.
                   </p>
-                  <div className="pt-4">
+                  <div className="pt-4 flex flex-wrap justify-center gap-3">
+                    <a
+                      href={`https://wa.me/919789354321?text=${encodeURIComponent(`Hello Happy Journey Holidays, I just submitted an enquiry on your website (Ref: ${submittedRef || ''}). Could you please share the details?`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition flex items-center gap-2 shadow-sm"
+                    >
+                      <MessageCircle size={15} />
+                      <span>Chat on WhatsApp</span>
+                    </a>
                     <button
                       onClick={() => {
                         setSubmitted(false);
+                        setSubmittedRef(null);
                         setFormData({ name: '', phone: '', email: '', subject: 'General Enquiry', message: '' });
                       }}
                       className="bg-[#002447] hover:bg-[#00386e] text-white text-xs font-bold py-2.5 px-5 rounded-xl transition border border-[#003d75] cursor-pointer"
@@ -228,6 +258,21 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onNavigate }) => {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {errorMessage && (
+                    <div className="p-3.5 bg-red-950/80 text-red-200 text-xs rounded-xl border border-red-800 space-y-2">
+                      <p className="font-semibold">{errorMessage}</p>
+                      <a
+                        href={createWhatsAppLink()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 font-bold text-emerald-400 hover:text-emerald-300 underline"
+                      >
+                        <MessageCircle size={13} />
+                        <span>Send directly via WhatsApp (+91 97893 54321)</span>
+                      </a>
+                    </div>
+                  )}
+
                   <div>
                     <span className="text-xs font-bold uppercase tracking-wider text-[#F27D26]">
                       Send a Message

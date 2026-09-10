@@ -26,8 +26,9 @@ const DEFAULT_NOTIFICATION_RECIPIENT = 'happyjourneyholidayscbe@gmail.com';
  * Works over HTTPS (port 443), avoiding any port restrictions in cloud environments.
  */
 async function sendViaBrevo(options: {
-  toEmail: string;
+  toEmail?: string;
   toName?: string;
+  to?: Array<{ email: string; name?: string }>;
   subject: string;
   htmlContent: string;
   textContent?: string;
@@ -41,17 +42,22 @@ async function sendViaBrevo(options: {
   const senderName = process.env.BREVO_SENDER_NAME || 'Happy Journey Holidays';
 
   try {
+    const toRecipients = options.to && options.to.length > 0
+      ? options.to
+      : options.toEmail
+        ? [{ email: options.toEmail.trim(), name: options.toName || options.toEmail.split('@')[0] }]
+        : [];
+
+    if (toRecipients.length === 0) {
+      return { sent: false, error: 'No recipient email specified.' };
+    }
+
     const payload = {
       sender: {
         name: senderName,
         email: senderEmail
       },
-      to: [
-        {
-          email: options.toEmail.trim(),
-          name: options.toName || options.toEmail.split('@')[0]
-        }
-      ],
+      to: toRecipients,
       replyTo: {
         name: senderName,
         email: senderEmail
@@ -358,21 +364,31 @@ WhatsApp Customer: ${whatsappUrl}
 --------------------------------------------------
 `;
 
+  // Prepare list of business/admin recipients
+  const primaryRecipient = process.env.NOTIFICATION_EMAIL || DEFAULT_NOTIFICATION_RECIPIENT;
+  const adminOwnerEmail = 'arudhramanikandan@gmail.com';
+  
+  const recipientList: Array<{ email: string; name: string }> = [
+    { email: primaryRecipient.trim(), name: 'Happy Journey Holidays Booking Desk' }
+  ];
+  if (adminOwnerEmail.toLowerCase() !== primaryRecipient.toLowerCase()) {
+    recipientList.push({ email: adminOwnerEmail, name: 'Admin Arudhra Manikandan' });
+  }
+
   // Dispatch via Brevo Transactional Email API if configured
   if (process.env.BREVO_API_KEY) {
     const brevoResult = await sendViaBrevo({
-      toEmail: recipient,
-      toName: 'Happy Journey Holidays Team',
+      to: recipientList,
       subject,
       htmlContent,
       textContent
     });
 
     if (brevoResult.sent) {
-      console.log(`[Email Notification Sent] Real email successfully delivered to ${recipient} via Brevo for Enquiry ${payload.enquiryReference}`);
+      console.log(`[Email Notification Sent] Real notification email delivered via Brevo (MessageId: ${brevoResult.messageId}) to: ${recipientList.map(r => r.email).join(', ')} for Enquiry ${payload.enquiryReference}`);
       return {
         success: true,
-        message: `Notification email dispatched to ${recipient} via Brevo`
+        message: `Notification email dispatched to ${recipientList.map(r => r.email).join(', ')} via Brevo`
       };
     }
     console.error(`[Email Notification Error] Brevo delivery failed: ${brevoResult.error}`);
@@ -383,9 +399,9 @@ WhatsApp Customer: ${whatsappUrl}
   }
 
   // If BREVO_API_KEY is not configured, log enquiry notification
-  console.log(`[Email Notification Logged] Real email to ${recipient} queued: Enquiry ${payload.enquiryReference} (${payload.customerName})`);
+  console.log(`[Email Notification Logged] Real email queued for: ${recipientList.map(r => r.email).join(', ')}: Enquiry ${payload.enquiryReference} (${payload.customerName})`);
   return {
     success: true,
-    message: `Email notification logged for ${recipient}. To send live emails, set BREVO_API_KEY in environment.`
+    message: `Email notification logged. To send live emails, set BREVO_API_KEY in environment.`
   };
 }

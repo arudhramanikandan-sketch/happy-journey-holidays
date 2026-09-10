@@ -51,6 +51,7 @@ export interface EnquiryRecord {
   customerMessage?: string;
   phoneVerified?: boolean;
   status: EnquiryStatus;
+  adminNotes?: string;
   createdAt: string; // ISO
   updatedAt: string; // ISO
   googleSheetStatus: 'synced' | 'pending' | 'failed' | 'not_configured';
@@ -183,9 +184,29 @@ export interface CreateEnquiryInput {
 export async function createNewCustomerEnquiry(input: CreateEnquiryInput): Promise<EnquiryRecord> {
   const enquiries = loadEnquiries();
 
-  // Generate Reference ID: HJH-XXXXXX
-  const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-  const enquiryReference = `HJH-${randomSuffix}`;
+  // Deduplication check: prevent duplicate submissions caused by double-clicking submit within 25 seconds
+  const cleanPhone = (input.phone || '').replace(/[^0-9]/g, '');
+  const cleanFullName = (input.fullName || '').trim().toLowerCase();
+
+  const recentDuplicate = enquiries.find(e => {
+    const existingPhone = (e.phoneNumber || '').replace(/[^0-9]/g, '');
+    const isSamePhone = existingPhone.length >= 10 && cleanPhone.length >= 10 && existingPhone.slice(-10) === cleanPhone.slice(-10);
+    const isSameName = e.customerName.trim().toLowerCase() === cleanFullName;
+    const timeDiffMs = Date.now() - new Date(e.createdAt).getTime();
+    return (isSamePhone || isSameName) && timeDiffMs < 25000 && timeDiffMs >= 0;
+  });
+
+  if (recentDuplicate) {
+    console.log(`[Deduplication] Prevented duplicate enquiry from ${input.fullName} (${input.phone}). Returning existing reference: ${recentDuplicate.enquiryReference}`);
+    return recentDuplicate;
+  }
+
+  // Generate guaranteed Unique Reference ID: HJH-XXXXXX
+  let enquiryReference = '';
+  do {
+    const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+    enquiryReference = `HJH-${randomSuffix}`;
+  } while (enquiries.some(e => e.id === enquiryReference || e.enquiryReference === enquiryReference));
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
@@ -402,6 +423,17 @@ export async function updateEnquiryStatus(id: string, newStatus: EnquiryStatus):
     console.warn('Could not update status in Google Sheet:', err);
   }
 
+  saveEnquiries(enquiries);
+  return enquiries[index];
+}
+
+export function updateEnquiryNotes(id: string, notes: string): EnquiryRecord | null {
+  const enquiries = loadEnquiries();
+  const index = enquiries.findIndex(e => e.id === id || e.enquiryReference === id);
+  if (index === -1) return null;
+
+  enquiries[index].adminNotes = notes;
+  enquiries[index].updatedAt = new Date().toISOString();
   saveEnquiries(enquiries);
   return enquiries[index];
 }
