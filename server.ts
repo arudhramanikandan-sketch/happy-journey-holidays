@@ -684,7 +684,7 @@ async function startServer() {
   // ==========================================
 
   // Handle public customer enquiries (From Website Quote Modal, Custom Trip, Contact)
-  app.post('/api/enquiries', async (req, res) => {
+  app.post(['/api/enquiries', '/api/enquiries/'], async (req, res) => {
     try {
       const {
         type = 'custom_trip',
@@ -769,7 +769,7 @@ async function startServer() {
   });
 
   // Track WhatsApp Direct button clicks as enquiries
-  app.post('/api/enquiries/whatsapp-click', async (req, res) => {
+  app.post(['/api/enquiries/whatsapp-click', '/api/enquiries/whatsapp-click/'], async (req, res) => {
     try {
       const {
         packageName,
