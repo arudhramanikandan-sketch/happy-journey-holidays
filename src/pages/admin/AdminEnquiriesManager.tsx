@@ -923,6 +923,15 @@ export const AdminEnquiriesManager: React.FC = () => {
                     <RefreshCw size={12} className={isResyncing === activeEnquiry.id ? 'animate-spin' : ''} />
                     <span>Sync to Sheet</span>
                   </button>
+
+                  <button
+                    onClick={() => setDeleteConfirmId(activeEnquiry.id)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-950/60 text-rose-300 border border-rose-800 text-xs font-bold hover:bg-rose-900 hover:text-white transition"
+                    title="Permanently Delete Enquiry"
+                  >
+                    <Trash2 size={12} />
+                    <span>Delete Permanently</span>
+                  </button>
                 </div>
               </div>
 
@@ -1101,10 +1110,13 @@ export const AdminEnquiriesManager: React.FC = () => {
             <div className="w-12 h-12 rounded-full bg-rose-950 text-rose-400 border border-rose-800 flex items-center justify-center mx-auto">
               <Trash2 size={24} />
             </div>
-            <h4 className="text-lg font-bold text-white">Delete this customer enquiry permanently?</h4>
-            <p className="text-xs text-slate-300">
-              Are you sure you want to permanently delete enquiry <strong className="text-white font-mono">{deleteConfirmId}</strong>? This action cannot be undone.
+            <h4 className="text-lg font-bold text-white">Permanently Delete Enquiry?</h4>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Are you sure you want to permanently delete enquiry <strong className="text-white font-mono">{deleteConfirmId}</strong>?
             </p>
+            <div className="bg-rose-950/50 border border-rose-900/80 rounded-xl p-2.5 text-[11px] text-rose-300 font-medium">
+              ⚠️ This customer enquiry will be immediately and permanently removed from the server database. It cannot be recovered or restored.
+            </div>
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setDeleteConfirmId(null)}
@@ -1114,9 +1126,9 @@ export const AdminEnquiriesManager: React.FC = () => {
               </button>
               <button
                 onClick={() => handleDeleteEnquiry(deleteConfirmId)}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition"
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-lg shadow-rose-950"
               >
-                Delete
+                Delete Permanently
               </button>
             </div>
           </div>

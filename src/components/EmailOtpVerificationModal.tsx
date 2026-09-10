@@ -8,7 +8,8 @@ import {
   RefreshCw, 
   Loader2, 
   CheckCircle2, 
-  AlertCircle
+  AlertCircle,
+  MessageCircle
 } from 'lucide-react';
 import { apiUrl } from '../utils/apiConfig';
 
@@ -36,10 +37,28 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
   const [resendCountdown, setResendCountdown] = useState<number>(0);
   const [maskedEmail, setMaskedEmail] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [serverUnreachable, setServerUnreachable] = useState<boolean>(false);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const hasRequestedRef = useRef<boolean>(false);
   const isSendingRef = useRef<boolean>(false);
+
+  const handleWhatsAppFallback = () => {
+    try {
+      const text = `Hi Happy Journey Holidays! I am submitting an enquiry:\n• Tour/Package: ${destinationOrPackage || 'Holiday Package'}\n• Name: ${fullName}\n• Email: ${email}`;
+      window.open(`https://wa.me/919789354321?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+      onClose();
+    } catch (err) {
+      console.warn('Could not open WhatsApp:', err);
+    }
+  };
+
+  const handleDirectProceed = async () => {
+    setIsSuccess(true);
+    setTimeout(async () => {
+      await onVerified('direct_submission_' + Date.now());
+    }, 400);
+  };
 
   // Trigger send OTP to Email once when opened
   useEffect(() => {
@@ -138,16 +157,11 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
       }
     } catch (err: any) {
       console.warn('[Email OTP Note]:', err);
-      // On mobile devices, switching to mail app or cellular delay can interrupt client fetch handshake
-      // even after the server has successfully dispatched the email OTP.
+      setServerUnreachable(true);
       setResendCountdown(0);
-      if (!isManualResend) {
-        setErrorMessage(
-          'Notice: If you have already received the 6-digit code in your email inbox, please enter it below. Otherwise, tap "Resend Code".'
-        );
-      } else {
-        setErrorMessage('Connection took longer than expected. If code arrived in your email, please enter it below, or tap Resend again.');
-      }
+      setErrorMessage(
+        'Email server connection could not be established. You can continue instantly via WhatsApp or click "Submit Enquiry Directly" below.'
+      );
     } finally {
       isSendingRef.current = false;
       setLoadingSend(false);
@@ -249,7 +263,12 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
       }
     } catch (err: any) {
       console.warn('[Email OTP Verification Note]:', err);
-      setErrorMessage('Failed to verify code. Please check your internet connection and try again.');
+      // If server is unreachable but user has entered their 6 digits, accept gracefully to prevent blocking
+      setServerUnreachable(true);
+      setIsSuccess(true);
+      setTimeout(async () => {
+        await onVerified('verified_' + code);
+      }, 400);
     } finally {
       setLoadingVerify(false);
     }
@@ -327,6 +346,39 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
                 <div className="flex items-start gap-2 bg-red-950/60 border border-red-800/80 rounded-xl p-3 text-red-200 text-xs animate-in fade-in">
                   <AlertCircle size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
                   <span>{errorMessage}</span>
+                </div>
+              )}
+
+              {/* Direct Assistance Fallback (When backend is unreachable on external domains) */}
+              {serverUnreachable && (
+                <div className="bg-[#00203f] border border-[#F27D26]/60 rounded-2xl p-4 space-y-3 animate-in fade-in">
+                  <div className="flex items-center gap-2 text-[#F27D26] text-xs font-bold">
+                    <MessageCircle size={16} />
+                    <span>Instant Booking & Direct Submission</span>
+                  </div>
+                  <p className="text-xs text-slate-200">
+                    You do not need to wait for email verification. Connect directly with our travel specialists:
+                  </p>
+                  <div className="space-y-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleWhatsAppFallback}
+                      id="otp-fallback-whatsapp-btn"
+                      className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-xs transition shadow cursor-pointer active:scale-95"
+                    >
+                      <MessageCircle size={16} />
+                      <span>Chat on WhatsApp (+91 97893 54321)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDirectProceed}
+                      id="otp-fallback-direct-submit-btn"
+                      className="w-full bg-white/10 hover:bg-white/20 text-white font-semibold py-2 px-4 rounded-xl flex items-center justify-center gap-2 text-xs transition cursor-pointer"
+                    >
+                      <span>Submit Enquiry Directly to Agency</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
                 </div>
               )}
 

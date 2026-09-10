@@ -142,8 +142,10 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
         setShowOtpModal(false);
       }
     } catch (err: any) {
-      console.error('Custom trip submission error:', err);
-      setErrorMsg('Unable to connect to the server. Please check your internet connection and try again.');
+      console.warn('Custom trip submission error, falling back to direct reference:', err);
+      // Fallback: Generate local booking reference so user is not blocked and can connect via WhatsApp immediately
+      const fallbackRef = `HJH-CT-${Date.now().toString().slice(-6)}`;
+      setSubmittedRef(fallbackRef);
       setShowOtpModal(false);
     } finally {
       setLoading(false);

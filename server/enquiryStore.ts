@@ -411,6 +411,7 @@ export function deleteEnquiryRecord(id: string): boolean {
   const filtered = enquiries.filter(e => e.id !== id && e.enquiryReference !== id);
   if (filtered.length === enquiries.length) return false;
   saveEnquiries(filtered);
+  console.log(`[Enquiry Store] Permanently deleted customer enquiry record: [${id}]`);
   return true;
 }
 
