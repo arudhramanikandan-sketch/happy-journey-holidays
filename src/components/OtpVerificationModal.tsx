@@ -16,14 +16,16 @@ import {
   retryOtpViaMsg91,
   formatMsg91Identifier 
 } from '../utils/msg91Widget';
+import { apiUrl } from '../utils/apiConfig';
 
 interface OtpVerificationModalProps {
   isOpen: boolean;
   phone: string;
   fullName: string;
   destinationOrPackage?: string;
+  enquiryData?: any;
   onClose: () => void;
-  onVerified: (token: string) => Promise<void> | void;
+  onVerified: (token: string, enquiryRecord?: any) => Promise<void> | void;
 }
 
 export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
@@ -31,6 +33,7 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
   phone,
   fullName,
   destinationOrPackage,
+  enquiryData,
   onClose,
   onVerified
 }) => {
@@ -83,19 +86,39 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
       const masked = `+91 ${formatted.slice(2, 4)}•••• ••${formatted.slice(-2)}`;
       setMaskedPhone(masked);
 
-      // Call official MSG91 sendOtp method
-      const result = await sendOtpViaMsg91(phone);
+      // 1. Dispatch via Server API to ensure enquiry details and OTP are registered
+      let serverDispatched = false;
+      try {
+        const res = await fetch(apiUrl('/api/otp/send'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone,
+            fullName,
+            destinationOrPackage,
+            enquiryData
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          serverDispatched = true;
+          if (data.maskedPhone) setMaskedPhone(data.maskedPhone);
+        }
+      } catch (serverErr) {
+        console.warn('Server OTP send note:', serverErr);
+      }
 
-      if (result.success) {
-        // Start resend countdown ONLY when sendOtp succeeds
+      // 2. Also trigger official MSG91 client SDK if available
+      const result = await sendOtpViaMsg91(phone).catch(() => ({ success: false, error: 'Failed to send OTP' }));
+
+      if (serverDispatched || result.success) {
         setResendCountdown(30);
       } else {
-        // Do NOT start timer on failure
         setResendCountdown(0);
         setErrorMessage(result.error || 'Failed to send OTP. Please try again.');
       }
     } catch (err: any) {
-      console.error('[MSG91 Diagnostic] Error sending OTP:', err);
+      console.error('[OTP Diagnostic] Error sending OTP:', err);
       setResendCountdown(0);
       setErrorMessage(err?.message || 'Network error while requesting OTP.');
     } finally {
@@ -108,22 +131,38 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
     setLoadingSend(true);
     setErrorMessage('');
     try {
-      // First attempt retryOtp via MSG91 SDK
-      const retryResult = await retryOtpViaMsg91(11);
-      if (retryResult.success) {
+      // 1. Server API resend
+      let serverResent = false;
+      try {
+        const res = await fetch(apiUrl('/api/otp/send'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone,
+            fullName,
+            destinationOrPackage,
+            enquiryData
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          serverResent = true;
+          if (data.maskedPhone) setMaskedPhone(data.maskedPhone);
+        }
+      } catch (e) {
+        console.warn('Server retry note:', e);
+      }
+
+      // 2. MSG91 client retry if available
+      const retryResult = await retryOtpViaMsg91(11).catch(() => ({ success: false, error: 'Failed to resend OTP' }));
+      if (serverResent || retryResult.success) {
         setResendCountdown(30);
       } else {
-        // Fallback to sendOtp if retry is not available
-        const sendResult = await sendOtpViaMsg91(phone);
-        if (sendResult.success) {
-          setResendCountdown(30);
-        } else {
-          setResendCountdown(0);
-          setErrorMessage(sendResult.error || retryResult.error || 'Failed to resend OTP.');
-        }
+        setResendCountdown(0);
+        setErrorMessage(retryResult.error || 'Failed to resend OTP.');
       }
     } catch (err: any) {
-      console.error('[MSG91 Diagnostic] Resend error:', err);
+      console.error('[OTP Diagnostic] Resend error:', err);
       setResendCountdown(0);
       setErrorMessage(err?.message || 'Error occurred while resending OTP.');
     } finally {
@@ -191,18 +230,56 @@ export const OtpVerificationModal: React.FC<OtpVerificationModalProps> = ({
     setErrorMessage('');
 
     try {
-      const verifyResult = await verifyOtpViaMsg91(code);
+      // 1. Primary verification via Server API - this automatically saves customer enquiry to the admin database!
+      let serverVerified = false;
+      let token = '';
+      let savedRecord: any = null;
 
-      if (verifyResult.success && verifyResult.accessToken) {
+      try {
+        const res = await fetch(apiUrl('/api/otp/verify'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone,
+            otp: code,
+            enquiryData,
+            fullName,
+            destination: destinationOrPackage
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          serverVerified = true;
+          token = data.verifiedToken || `VTOK_${code}`;
+          savedRecord = data.enquiry || data.referenceId;
+        } else if (data.error) {
+          setErrorMessage(data.error);
+        }
+      } catch (serverErr) {
+        console.warn('Server verify note:', serverErr);
+      }
+
+      // 2. Fallback to MSG91 client SDK if server didn't verify
+      if (!serverVerified) {
+        const verifyResult = await verifyOtpViaMsg91(code).catch(() => ({ success: false, accessToken: undefined as string | undefined }));
+        if (verifyResult.success && verifyResult.accessToken) {
+          serverVerified = true;
+          token = verifyResult.accessToken;
+        }
+      }
+
+      if (serverVerified && token) {
         setIsSuccess(true);
         setTimeout(async () => {
-          await onVerified(verifyResult.accessToken!);
+          await onVerified(token, savedRecord);
         }, 500);
       } else {
-        setErrorMessage(verifyResult.error || 'Invalid OTP code. Please check and re-enter.');
+        if (!errorMessage) {
+          setErrorMessage('Invalid OTP code. Please check and re-enter.');
+        }
       }
     } catch (err: any) {
-      console.error('[MSG91 Diagnostic] Error verifying OTP:', err);
+      console.error('[OTP Diagnostic] Error verifying OTP:', err);
       setErrorMessage(err?.message || 'Failed to verify OTP. Please check your internet connection.');
     } finally {
       setLoadingVerify(false);

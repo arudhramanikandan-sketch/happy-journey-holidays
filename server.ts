@@ -509,12 +509,13 @@ async function startServer() {
   // Step 1: Send OTP to customer's mobile number
   app.post('/api/otp/send', async (req, res) => {
     try {
-      const { phone, fullName } = req.body;
+      const { phone, fullName, enquiryData, ...otherFields } = req.body;
       if (!phone || typeof phone !== 'string') {
         return res.status(400).json({ error: 'Please provide a valid mobile number.' });
       }
 
-      const result = await sendOtpToMobile(phone, fullName);
+      const combinedEnquiry = enquiryData || (otherFields && Object.keys(otherFields).length > 0 ? { phone, fullName, ...otherFields } : undefined);
+      const result = await sendOtpToMobile(phone, fullName, combinedEnquiry);
       if (!result.success) {
         return res.status(400).json({ error: result.error || 'Failed to send OTP.' });
       }
@@ -534,10 +535,10 @@ async function startServer() {
     }
   });
 
-  // Step 2: Verify customer entered OTP
+  // Step 2: Verify customer entered OTP & automatically save enquiry into admin database
   app.post('/api/otp/verify', async (req, res) => {
     try {
-      const { phone, otp } = req.body;
+      const { phone, otp, enquiryData, ...otherFields } = req.body;
       if (!phone || !otp) {
         return res.status(400).json({ error: 'Mobile number and 6-digit OTP code are required.' });
       }
@@ -547,11 +548,56 @@ async function startServer() {
         return res.status(400).json({ error: result.error || 'Invalid OTP code.' });
       }
 
+      // Automatically save customer enquiry details to admin database on successful OTP verification
+      let savedEnquiry = null;
+      const combined = {
+        ...(result.enquiryData || {}),
+        ...(enquiryData || {}),
+        ...otherFields
+      };
+
+      const hasDetails = combined.fullName || combined.customerName || combined.destination || combined.packageName || combined.destinationOrService || result.fullName;
+
+      if (hasDetails || result.phone) {
+        try {
+          const rawName = combined.fullName || combined.customerName || combined.name || result.fullName || 'Valued Traveler';
+          const rawPhone = combined.phone || combined.phoneNumber || result.phone;
+          const targetDestination = combined.destination || combined.destinationOrService || combined.packageName || 'Holiday Enquiry';
+
+          savedEnquiry = await createNewCustomerEnquiry({
+            type: combined.type || 'custom_trip',
+            source: combined.source || 'Website Enquiry (Mobile OTP Verified)',
+            fullName: rawName,
+            phone: rawPhone,
+            email: combined.email,
+            destination: targetDestination,
+            packageName: combined.packageName || targetDestination,
+            travelDate: combined.travelDate,
+            returnDate: combined.returnDate,
+            adults: combined.adults,
+            children: combined.children,
+            travelers: combined.travelers,
+            budget: combined.budget,
+            tripType: combined.tripType,
+            departureCity: combined.departureCity,
+            specialRequirements: combined.specialRequirements || combined.notes || combined.message,
+            message: combined.message || combined.specialRequirements || combined.notes,
+            phoneVerified: true
+          });
+          console.log(`[Auto-Saved on Mobile OTP Verify] Enquiry Reference: ${savedEnquiry.enquiryReference} for ${savedEnquiry.customerName}`);
+        } catch (saveErr) {
+          console.error('[Error auto-saving enquiry on Mobile OTP verify]:', saveErr);
+        }
+      }
+
       return res.json({
         success: true,
         message: 'Mobile number verified successfully!',
         phone: result.phone,
-        verifiedToken: result.verifiedToken
+        verifiedToken: result.verifiedToken,
+        enquiry: savedEnquiry,
+        enquiryReference: savedEnquiry?.enquiryReference,
+        referenceId: savedEnquiry?.enquiryReference
       });
     } catch (err: any) {
       console.error('[Verify OTP Error]:', err);
@@ -614,14 +660,15 @@ async function startServer() {
     });
 
     try {
-      const { email, fullName, destinationOrPackage } = req.body || {};
+      const { email, fullName, destinationOrPackage, enquiryData, ...otherFields } = req.body || {};
       if (!email || typeof email !== 'string') {
         const errResp = { error: 'Please provide a valid email address.' };
         logSafeOtpDiagnostic('RESP_ERR_BAD_INPUT', { status: 400, err: errResp.error, durationMs: Date.now() - startTime });
         return res.status(400).json(errResp);
       }
 
-      const result = await sendOtpToEmail(email, fullName, destinationOrPackage);
+      const combinedEnquiry = enquiryData || (otherFields && Object.keys(otherFields).length > 0 ? { email, fullName, destination: destinationOrPackage, ...otherFields } : undefined);
+      const result = await sendOtpToEmail(email, fullName, destinationOrPackage, combinedEnquiry);
       if (!result.success) {
         const errResp = { error: result.error || 'Failed to send OTP to email.' };
         logSafeOtpDiagnostic('RESP_ERR_BACKEND', { status: 400, err: errResp.error, durationMs: Date.now() - startTime });
@@ -644,11 +691,11 @@ async function startServer() {
     }
   });
 
-  // Step 2: Verify customer entered email OTP
+  // Step 2: Verify customer entered email OTP & automatically save enquiry into admin database
   app.options(['/api/otp/email/verify', '/api/otp/email/verify/'], (req, res) => res.status(204).end());
   app.post(['/api/otp/email/verify', '/api/otp/email/verify/'], async (req, res) => {
     try {
-      const { email, otp } = req.body;
+      const { email, otp, enquiryData, ...otherFields } = req.body;
       if (!email || !otp) {
         return res.status(400).json({ error: 'Email address and 6-digit OTP code are required.' });
       }
@@ -658,11 +705,56 @@ async function startServer() {
         return res.status(400).json({ error: result.error || 'Invalid OTP code.' });
       }
 
+      // Automatically save customer enquiry details to admin database on successful email OTP verification
+      let savedEnquiry = null;
+      const combined = {
+        ...(result.enquiryData || {}),
+        ...(enquiryData || {}),
+        ...otherFields
+      };
+
+      const hasDetails = combined.fullName || combined.customerName || combined.destination || combined.packageName || combined.destinationOrService || result.fullName;
+
+      if (hasDetails || result.email) {
+        try {
+          const rawName = combined.fullName || combined.customerName || combined.name || result.fullName || 'Valued Traveler';
+          const rawPhone = combined.phone || combined.phoneNumber || '';
+          const targetDestination = combined.destination || combined.destinationOrPackage || combined.destinationOrService || combined.packageName || 'Holiday Enquiry';
+
+          savedEnquiry = await createNewCustomerEnquiry({
+            type: combined.type || 'custom_trip',
+            source: combined.source || 'Website Enquiry (Email OTP Verified)',
+            fullName: rawName,
+            phone: rawPhone,
+            email: result.email,
+            destination: targetDestination,
+            packageName: combined.packageName || targetDestination,
+            travelDate: combined.travelDate,
+            returnDate: combined.returnDate,
+            adults: combined.adults,
+            children: combined.children,
+            travelers: combined.travelers,
+            budget: combined.budget,
+            tripType: combined.tripType,
+            departureCity: combined.departureCity,
+            specialRequirements: combined.specialRequirements || combined.notes || combined.message,
+            message: combined.message || combined.specialRequirements || combined.notes,
+            phoneVerified: true
+          });
+          console.log(`[Auto-Saved on Email OTP Verify] Enquiry Reference: ${savedEnquiry.enquiryReference} for ${savedEnquiry.customerName}`);
+        } catch (saveErr) {
+          console.error('[Error auto-saving enquiry on Email OTP verify]:', saveErr);
+        }
+      }
+
       return res.json({
         success: true,
         message: 'Email address verified successfully!',
         email: result.email,
-        verifiedToken: result.verifiedToken
+        verifiedToken: result.verifiedToken,
+        enquiry: savedEnquiry,
+        enquiryReference: savedEnquiry?.enquiryReference,
+        referenceId: savedEnquiry?.enquiryReference
       });
     } catch (err: any) {
       console.error('[Verify Email OTP Error]:', err);

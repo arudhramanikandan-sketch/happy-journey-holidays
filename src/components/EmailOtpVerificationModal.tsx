@@ -19,8 +19,9 @@ interface EmailOtpVerificationModalProps {
   email: string;
   fullName: string;
   destinationOrPackage?: string;
+  enquiryData?: any;
   onClose: () => void;
-  onVerified: (token: string) => Promise<void> | void;
+  onVerified: (token: string, enquiryRecord?: any) => Promise<void> | void;
 }
 
 export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps> = ({
@@ -28,6 +29,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
   email,
   fullName,
   destinationOrPackage,
+  enquiryData,
   onClose,
   onVerified
 }) => {
@@ -136,7 +138,8 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
           body: JSON.stringify({
             email: cleanEmail,
             fullName,
-            destinationOrPackage
+            destinationOrPackage,
+            enquiryData
           }),
           signal: controller.signal,
           keepalive: true
@@ -147,12 +150,13 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json' 
           },
           body: JSON.stringify({
             email: cleanEmail,
             fullName,
-            destinationOrPackage
+            destinationOrPackage,
+            enquiryData
           }),
           signal: controller.signal,
           keepalive: true
@@ -263,7 +267,10 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
           },
           body: JSON.stringify({
             email: email.trim().toLowerCase(),
-            otp: code
+            otp: code,
+            enquiryData,
+            fullName,
+            destinationOrPackage
           }),
           signal: controller.signal,
           keepalive: true
@@ -278,7 +285,10 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
           },
           body: JSON.stringify({
             email: email.trim().toLowerCase(),
-            otp: code
+            otp: code,
+            enquiryData,
+            fullName,
+            destinationOrPackage
           }),
           signal: controller.signal,
           keepalive: true
@@ -292,7 +302,7 @@ export const EmailOtpVerificationModal: React.FC<EmailOtpVerificationModalProps>
       if (res.ok && data.success && data.verifiedToken) {
         setIsSuccess(true);
         setTimeout(async () => {
-          await onVerified(data.verifiedToken);
+          await onVerified(data.verifiedToken, data.enquiry || data.referenceId);
         }, 500);
       } else {
         setErrorMessage(data.error || 'Invalid verification code. Please check your inbox and re-enter.');

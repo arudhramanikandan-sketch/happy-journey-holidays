@@ -12,11 +12,13 @@ import {
   Users, 
   Sparkles,
   Loader2,
-  MessageSquare 
+  MessageSquare,
+  ShieldCheck 
 } from 'lucide-react';
 import { QuoteRequestData } from '../types';
 import { createQuickQuoteWhatsAppLink, COMPANY_PHONE, COMPANY_PHONE_INTL } from '../utils/whatsapp';
 import { apiUrl } from '../utils/apiConfig';
+import { OtpVerificationModal } from './OtpVerificationModal';
 
 interface QuoteModalProps {
   isOpen: boolean;
@@ -42,6 +44,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   useEffect(() => {
     if (initialDestinationOrService) {
@@ -174,6 +177,43 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
     setSubmittedRef(null);
     setErrorMessage('');
     onClose();
+  };
+
+  const handleStartOtpVerification = () => {
+    setErrorMessage('');
+    if (!formData.fullName.trim()) {
+      setErrorMessage('Please provide your full name before requesting OTP verification.');
+      return;
+    }
+    if (!formData.phone.trim() || formData.phone.length < 10) {
+      setErrorMessage('Please provide a valid 10-digit mobile number for OTP verification.');
+      return;
+    }
+    const cleanEmail = formData.email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setErrorMessage('Please provide your email address.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setErrorMessage('Please provide a valid email address.');
+      return;
+    }
+    setShowOtpModal(true);
+  };
+
+  const quoteEnquiryPayload = {
+    type: 'package_quote',
+    source: 'Website Enquiry (OTP Verified)',
+    fullName: formData.fullName.trim(),
+    phone: formData.phone.trim(),
+    email: formData.email.trim().toLowerCase(),
+    destination: formData.destinationOrService.trim(),
+    packageName: formData.destinationOrService.trim(),
+    travelDate: formData.travelDate,
+    travelers: formData.travelers,
+    adults: formData.travelers.includes('1 Solo') ? 1 : 2,
+    specialRequirements: formData.notes
   };
 
   return (
@@ -412,7 +452,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-[#F27D26] hover:bg-[#d96c1e] text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow transition active:scale-95 text-sm disabled:opacity-75 cursor-pointer"
+                  className="flex-1 bg-[#F27D26] hover:bg-[#d96c1e] text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow transition active:scale-95 text-xs sm:text-sm disabled:opacity-75 cursor-pointer"
                 >
                   {loading ? (
                     <>
@@ -422,19 +462,29 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   ) : (
                     <>
                       <Send size={16} />
-                      <span>Get Instant Free Quote</span>
+                      <span>Instant Submit</span>
                     </>
                   )}
                 </button>
 
                 <button
                   type="button"
+                  onClick={handleStartOtpVerification}
+                  className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition active:scale-95 text-xs sm:text-sm cursor-pointer"
+                  title="Verify phone via OTP and automatically save enquiry"
+                >
+                  <ShieldCheck size={16} />
+                  <span>Verify OTP & Save</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleWhatsAppDirect}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition active:scale-95 text-xs sm:text-sm"
                   title="Enquire on WhatsApp immediately"
                 >
                   <MessageCircle size={16} />
-                  <span>WhatsApp Quote</span>
+                  <span>WhatsApp</span>
                 </button>
               </div>
 
@@ -445,6 +495,23 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Embedded OTP Verification Modal */}
+      {showOtpModal && (
+        <OtpVerificationModal
+          isOpen={showOtpModal}
+          phone={formData.phone}
+          fullName={formData.fullName}
+          destinationOrPackage={formData.destinationOrService}
+          enquiryData={quoteEnquiryPayload}
+          onClose={() => setShowOtpModal(false)}
+          onVerified={(token, savedRecord) => {
+            const ref = savedRecord?.enquiryReference || (typeof savedRecord === 'string' ? savedRecord : `HJH-${Math.floor(100000 + Math.random() * 900000)}`);
+            setSubmittedRef(ref);
+            setShowOtpModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

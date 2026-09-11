@@ -26,6 +26,7 @@ import { CustomTripFormData, TripType, PageRoute } from '../types';
 import { createCustomTripWhatsAppLink, COMPANY_PHONE, COMPANY_PHONE_INTL, COMPANY_EMAIL } from '../utils/whatsapp';
 import { SubpageBackKey } from '../components/SubpageBackKey';
 import { apiUrl } from '../utils/apiConfig';
+import { OtpVerificationModal } from '../components/OtpVerificationModal';
 
 interface CustomTripPageProps {
   onNavigate: (route: PageRoute) => void;
@@ -50,6 +51,7 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
   const [loading, setLoading] = useState(false);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
 
   const tripTypeOptions: { type: TripType; icon: string; desc: string }[] = [
     { type: 'Honeymoon', icon: '💖', desc: 'Romantic stays, private villas & candlelight dinners' },
@@ -207,6 +209,54 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
     } catch (err) {
       console.warn('Could not open WhatsApp popup:', err);
     }
+  };
+
+  const handleStartOtpVerification = () => {
+    setErrorMsg('');
+    if (!formData.fullName.trim()) {
+      setErrorMsg('Please enter your full name before requesting OTP verification.');
+      return;
+    }
+    if (!formData.phone.trim() || formData.phone.length < 10) {
+      setErrorMsg('Please enter a valid 10-digit mobile number for OTP verification.');
+      return;
+    }
+    const cleanEmail = formData.email.trim().toLowerCase();
+    if (!cleanEmail) {
+      setErrorMsg('Please enter your email address.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+    if (!formData.destination.trim()) {
+      setErrorMsg('Please enter your desired destination.');
+      return;
+    }
+    if (!formData.departureCity.trim()) {
+      setErrorMsg('Please enter your departure city.');
+      return;
+    }
+    setShowOtpModal(true);
+  };
+
+  const customTripPayload = {
+    type: 'custom_trip',
+    source: 'Custom Trip Planner (OTP Verified)',
+    fullName: formData.fullName.trim(),
+    phone: formData.phone.trim(),
+    email: formData.email.trim().toLowerCase(),
+    destination: formData.destination.trim(),
+    departureCity: formData.departureCity.trim(),
+    travelDate: formData.travelDate,
+    returnDate: formData.returnDate,
+    adults: formData.adults,
+    children: formData.children,
+    budget: formData.budget,
+    tripType: formData.tripType,
+    specialRequirements: formData.specialRequirements
   };
 
   return (
@@ -628,7 +678,7 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
                   type="submit"
                   disabled={loading}
                   id="submit-custom-trip-btn"
-                  className="w-full sm:w-auto flex-1 bg-[#F27D26] hover:bg-[#d96c1e] text-white font-extrabold py-3.5 px-8 rounded-2xl flex items-center justify-center gap-2 shadow-lg transition active:scale-95 text-sm cursor-pointer disabled:opacity-75"
+                  className="w-full sm:w-auto flex-1 bg-[#F27D26] hover:bg-[#d96c1e] text-white font-extrabold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-lg transition active:scale-95 text-xs sm:text-sm cursor-pointer disabled:opacity-75"
                 >
                   {loading ? (
                     <>
@@ -645,11 +695,22 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
 
                 <button
                   type="button"
+                  onClick={handleStartOtpVerification}
+                  id="verify-otp-custom-trip-btn"
+                  className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-xs sm:text-sm cursor-pointer"
+                  title="Verify your phone via OTP and instantly save enquiry into admin system"
+                >
+                  <ShieldCheck size={18} />
+                  <span>Verify OTP & Save</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={handleWhatsAppDispatch}
-                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-sm cursor-pointer"
+                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-xs sm:text-sm cursor-pointer"
                 >
                   <MessageCircle size={18} />
-                  <span>Enquire on WhatsApp Direct</span>
+                  <span>WhatsApp Direct</span>
                 </button>
               </div>
 
@@ -661,6 +722,29 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
           </div>
         )}
       </section>
+
+      {/* Embedded OTP Verification Modal */}
+      {showOtpModal && (
+        <OtpVerificationModal
+          isOpen={showOtpModal}
+          phone={formData.phone}
+          fullName={formData.fullName}
+          destinationOrPackage={formData.destination}
+          enquiryData={customTripPayload}
+          onClose={() => setShowOtpModal(false)}
+          onVerified={(token, savedRecord) => {
+            const ref = savedRecord?.enquiryReference || (typeof savedRecord === 'string' ? savedRecord : `HJH-${Math.floor(100000 + Math.random() * 900000)}`);
+            setErrorMsg('');
+            setSubmittedRef(ref);
+            setShowOtpModal(false);
+            try {
+              window.scrollTo({ top: 120, behavior: 'smooth' });
+            } catch {
+              window.scrollTo(0, 120);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

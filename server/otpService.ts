@@ -5,6 +5,7 @@ interface OtpEntry {
   phone?: string;
   email?: string;
   fullName?: string;
+  enquiryData?: any;
   otp: string;
   expiresAt: number;
   attempts: number;
@@ -227,7 +228,7 @@ async function verifyWithMsg91Widget(reqId: string, otp: string): Promise<boolea
   }
 }
 
-export async function sendOtpToMobile(rawPhone: string, fullName?: string): Promise<{
+export async function sendOtpToMobile(rawPhone: string, fullName?: string, enquiryData?: any): Promise<{
   success: boolean;
   phone: string;
   maskedPhone: string;
@@ -253,6 +254,9 @@ export async function sendOtpToMobile(rawPhone: string, fullName?: string): Prom
   const existing = otpStore.get(phone);
   const now = Date.now();
   if (existing && now - existing.createdAt < 20000) {
+    if (enquiryData) {
+      existing.enquiryData = { ...(existing.enquiryData || {}), ...enquiryData };
+    }
     const waitSec = Math.ceil((20000 - (now - existing.createdAt)) / 1000);
     return {
       success: false,
@@ -276,6 +280,7 @@ export async function sendOtpToMobile(rawPhone: string, fullName?: string): Prom
   otpStore.set(phone, {
     phone,
     fullName: fullName?.trim(),
+    enquiryData: enquiryData || existing?.enquiryData,
     otp: otpCode,
     expiresAt,
     attempts: 0,
@@ -299,6 +304,8 @@ export async function sendOtpToMobile(rawPhone: string, fullName?: string): Prom
 export async function verifyMobileOtp(rawPhone: string, enteredOtp: string): Promise<{
   success: boolean;
   phone: string;
+  fullName?: string;
+  enquiryData?: any;
   verifiedToken?: string;
   error?: string;
 }> {
@@ -371,6 +378,8 @@ export async function verifyMobileOtp(rawPhone: string, enteredOtp: string): Pro
   return {
     success: true,
     phone,
+    fullName: entry.fullName,
+    enquiryData: entry.enquiryData,
     verifiedToken
   };
 }
@@ -454,7 +463,8 @@ export async function validateMsg91AccessToken(token: string): Promise<{
 export async function sendOtpToEmail(
   rawEmail: string,
   fullName?: string,
-  destinationOrPackage?: string
+  destinationOrPackage?: string,
+  enquiryData?: any
 ): Promise<{
   success: boolean;
   email: string;
@@ -484,6 +494,9 @@ export async function sendOtpToEmail(
   const existing = emailOtpStore.get(email);
   const now = Date.now();
   if (existing && (now - existing.createdAt < 30000) && (now < existing.expiresAt)) {
+    if (enquiryData) {
+      existing.enquiryData = { ...(existing.enquiryData || {}), ...enquiryData };
+    }
     return {
       success: true,
       email,
@@ -503,6 +516,7 @@ export async function sendOtpToEmail(
   emailOtpStore.set(email, {
     email,
     fullName: fullName?.trim(),
+    enquiryData: enquiryData || existing?.enquiryData,
     otp: otpCode,
     expiresAt,
     attempts: 0,
@@ -535,6 +549,8 @@ export async function verifyEmailOtp(
 ): Promise<{
   success: boolean;
   email: string;
+  fullName?: string;
+  enquiryData?: any;
   verifiedToken?: string;
   error?: string;
 }> {
@@ -597,6 +613,8 @@ export async function verifyEmailOtp(
   return {
     success: true,
     email,
+    fullName: entry.fullName,
+    enquiryData: entry.enquiryData,
     verifiedToken
   };
 }

@@ -142,6 +142,32 @@ export const AdminEnquiriesManager: React.FC = () => {
   const [actionErrorMsg, setActionErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check and synchronize any pending enquiries from browser storage into admin database
+    const syncPendingEnquiries = async () => {
+      try {
+        const stored = localStorage.getItem('hjh_pending_enquiries');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const res = await fetch(apiUrl('/api/enquiries/sync-batch'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ enquiries: parsed })
+            });
+            if (res.ok) {
+              localStorage.removeItem('hjh_pending_enquiries');
+              console.log(`[Admin] Synchronized ${parsed.length} customer enquiries to database.`);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Pending enquiries sync note:', err);
+      }
+    };
+    syncPendingEnquiries().then(() => fetchEnquiries());
+  }, []);
+
+  useEffect(() => {
     fetchEnquiries();
   }, [selectedStatus, selectedCategory, selectedSource, selectedDateFilter]);
 
