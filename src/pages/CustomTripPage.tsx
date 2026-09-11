@@ -673,44 +673,14 @@ export const CustomTripPage: React.FC<CustomTripPageProps> = ({ onNavigate }) =>
               </div>
 
               {/* Submit CTA */}
-              <div className="pt-4 flex flex-col sm:flex-row gap-3 items-center">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  id="submit-custom-trip-btn"
-                  className="w-full sm:w-auto flex-1 bg-[#F27D26] hover:bg-[#d96c1e] text-white font-extrabold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-lg transition active:scale-95 text-xs sm:text-sm cursor-pointer disabled:opacity-75"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
-                      <span>Submitting Enquiry...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send size={18} />
-                      <span>Submit Trip Enquiry</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleStartOtpVerification}
-                  id="verify-otp-custom-trip-btn"
-                  className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-xs sm:text-sm cursor-pointer"
-                  title="Verify your phone via OTP and instantly save enquiry into admin system"
-                >
-                  <ShieldCheck size={18} />
-                  <span>Verify OTP & Save</span>
-                </button>
-
+              <div className="pt-4 flex flex-col gap-3 items-center">
                 <button
                   type="button"
                   onClick={handleWhatsAppDispatch}
-                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-xs sm:text-sm cursor-pointer"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 transition active:scale-95 text-sm cursor-pointer shadow-lg"
                 >
                   <MessageCircle size={18} />
-                  <span>WhatsApp Direct</span>
+                  <span>Enquire on WhatsApp Direct</span>
                 </button>
               </div>
 
