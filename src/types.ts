@@ -4,6 +4,7 @@ export type PageRoute =
   | '/domestic-holidays'
   | '/services'
   | '/custom-trip'
+  | '/travel-esim'
   | '/about'
   | '/contact'
   | '/admin';

@@ -42,11 +42,12 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks: { label: string; route: PageRoute }[] = [
+  const navLinks: { label: string; route: PageRoute; badge?: string }[] = [
     { label: 'Home', route: '/' },
     { label: 'International Holidays', route: '/international-holidays' },
     { label: 'Domestic Holidays', route: '/domestic-holidays' },
     { label: 'Travel Services', route: '/services' },
+    { label: 'Travel eSIM', route: '/travel-esim', badge: '10% OFF' },
     { label: 'Custom Trip', route: '/custom-trip' },
     { label: 'About Us', route: '/about' },
     { label: 'Contact', route: '/contact' }
@@ -155,7 +156,14 @@ export const Header: React.FC<HeaderProps> = ({
                       : 'text-slate-300 hover:text-white hover:bg-[#00203f]'
                   }`}
                 >
-                  {link.label}
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>{link.label}</span>
+                    {link.badge && (
+                      <span className="text-[9px] font-extrabold bg-[#F27D26] text-white px-1.5 py-0.5 rounded-full tracking-tight leading-none shadow-sm">
+                        {link.badge}
+                      </span>
+                    )}
+                  </span>
                   {isActive && (
                     <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#F27D26] rounded-full"></span>
                   )}
@@ -230,7 +238,14 @@ export const Header: React.FC<HeaderProps> = ({
                         : 'text-slate-300 hover:bg-[#00203f] hover:text-white'
                     }`}
                   >
-                    <span>{link.label}</span>
+                    <span className="inline-flex items-center gap-2">
+                      <span>{link.label}</span>
+                      {link.badge && (
+                        <span className="text-[10px] font-extrabold bg-[#F27D26] text-white px-2 py-0.5 rounded-full uppercase tracking-tight">
+                          {link.badge}
+                        </span>
+                      )}
+                    </span>
                     <ChevronRight size={16} className={isActive ? 'text-[#F27D26]' : 'text-slate-500'} />
                   </button>
                 );

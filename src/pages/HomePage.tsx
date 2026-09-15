@@ -31,6 +31,7 @@ import {
 import { DestinationCard } from '../components/DestinationCard';
 import { PackageCard } from '../components/PackageCard';
 import { ServiceCard } from '../components/ServiceCard';
+import { TravelEsimSection } from '../components/TravelEsimSection';
 import { createWhatsAppLink } from '../utils/whatsapp';
 import { usePublicPackages } from '../utils/usePackages';
 
@@ -357,7 +358,10 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      {/* 5. WHY CHOOSE HAPPY JOURNEY HOLIDAYS (4 benefits) */}
+      {/* 5. INTERNATIONAL TRAVEL ESIM SECTION */}
+      <TravelEsimSection onNavigate={onNavigate} />
+
+      {/* 6. WHY CHOOSE HAPPY JOURNEY HOLIDAYS (4 benefits) */}
       <section id="why-choose-us-section" className="bg-[#000e1f] text-white py-16 sm:py-20 border-y border-[#002b54]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">

@@ -96,6 +96,7 @@ export const Footer: React.FC<FooterProps> = ({ onRouteChange, onOpenQuoteModal 
                 { label: 'International Holidays', route: '/international-holidays' as PageRoute },
                 { label: 'Domestic Holidays', route: '/domestic-holidays' as PageRoute },
                 { label: 'Travel Services', route: '/services' as PageRoute },
+                { label: 'International Travel eSIM', route: '/travel-esim' as PageRoute },
                 { label: 'Custom Trip Planner', route: '/custom-trip' as PageRoute },
                 { label: 'About Us', route: '/about' as PageRoute },
                 { label: 'Contact Us', route: '/contact' as PageRoute }
@@ -120,22 +121,23 @@ export const Footer: React.FC<FooterProps> = ({ onRouteChange, onOpenQuoteModal 
             </h4>
             <ul className="space-y-2 text-xs">
               {[
-                'Flight Booking',
-                'Hotel Booking',
-                'Holiday Packages',
-                'Visa Assistance',
-                'Travel Insurance',
-                'Transfers & Cabs'
+                { name: 'Flight Booking', route: '/services' as PageRoute },
+                { name: 'Hotel Booking', route: '/services' as PageRoute },
+                { name: 'Holiday Packages', route: '/international-holidays' as PageRoute },
+                { name: 'Visa Assistance', route: '/services' as PageRoute },
+                { name: 'Travel eSIM & Data', route: '/travel-esim' as PageRoute },
+                { name: 'Travel Insurance', route: '/services' as PageRoute },
+                { name: 'Transfers & Cabs', route: '/services' as PageRoute }
               ].map((service) => (
-                <li key={service}>
+                <li key={service.name}>
                   <button
                     onClick={() => {
-                      handleNav('/services');
+                      handleNav(service.route);
                     }}
                     className="hover:text-[#F27D26] text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer text-left"
                   >
                     <ArrowRight size={11} className="text-slate-500" />
-                    <span>{service}</span>
+                    <span>{service.name}</span>
                   </button>
                 </li>
               ))}

@@ -11,6 +11,7 @@ import { ServicesPage } from './pages/ServicesPage';
 import { CustomTripPage } from './pages/CustomTripPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
+import { TravelEsimPage } from './pages/TravelEsimPage';
 import { AdminPortal } from './pages/admin/AdminPortal';
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
         '/domestic-holidays',
         '/services',
         '/custom-trip',
+        '/travel-esim',
         '/about',
         '/contact',
         '/admin'
@@ -110,6 +112,9 @@ export default function App() {
       case '/custom-trip':
         pageTitle = 'Plan Custom Holiday Trip | Tailor-Made Tours from Coimbatore | Happy Journey Holidays';
         break;
+      case '/travel-esim':
+        pageTitle = 'International Travel eSIM | Instant 4G/5G Data in 200+ Countries | Happy Journey Holidays';
+        break;
       case '/about':
         pageTitle = 'About Us | Tour Operator in Neelambur, Coimbatore | Happy Journey Holidays';
         break;
@@ -171,6 +176,13 @@ export default function App() {
         return (
           <CustomTripPage 
             onNavigate={navigateTo} 
+          />
+        );
+      case '/travel-esim':
+        return (
+          <TravelEsimPage 
+            onNavigate={navigateTo} 
+            onOpenQuoteModal={handleOpenQuoteModal} 
           />
         );
       case '/about':
