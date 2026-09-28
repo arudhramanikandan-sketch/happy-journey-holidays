@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, 
-  Send, 
   MessageCircle, 
   CheckCircle, 
   Calendar, 
@@ -11,9 +10,7 @@ import {
   MapPin, 
   Users, 
   Sparkles,
-  Loader2,
-  MessageSquare,
-  ShieldCheck 
+  MessageSquare
 } from 'lucide-react';
 import { QuoteRequestData } from '../types';
 import { createQuickQuoteWhatsAppLink, COMPANY_PHONE, COMPANY_PHONE_INTL } from '../utils/whatsapp';
@@ -164,7 +161,17 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
     }
   };
 
-  const handleWhatsAppDirect = () => {
+  const handleWhatsAppDirect = (e?: React.FormEvent | React.MouseEvent) => {
+    if (e && 'preventDefault' in e) e.preventDefault();
+    setErrorMessage('');
+    if (!formData.fullName.trim()) {
+      setErrorMessage('Please provide your full name.');
+      return;
+    }
+    if (!formData.phone.trim() || formData.phone.length < 10) {
+      setErrorMessage('Please provide a valid 10-digit WhatsApp / mobile number.');
+      return;
+    }
     try {
       const waUrl = createQuickQuoteWhatsAppLink(formData, submittedRef || undefined);
       window.open(waUrl, '_blank', 'noopener,noreferrer');
@@ -297,7 +304,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
             </div>
           ) : (
             /* Form View */
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleWhatsAppDirect} className="space-y-4">
               {errorMessage && (
                 <div className="p-3.5 bg-red-950/60 text-red-200 text-xs rounded-xl border border-red-800 flex items-start justify-between gap-3 animate-in fade-in duration-200">
                   <div className="space-y-2">
@@ -448,43 +455,15 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-[#F27D26] hover:bg-[#d96c1e] text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 shadow transition active:scale-95 text-xs sm:text-sm disabled:opacity-75 cursor-pointer"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Sending Request...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send size={16} />
-                      <span>Instant Submit</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleStartOtpVerification}
-                  className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition active:scale-95 text-xs sm:text-sm cursor-pointer"
-                  title="Verify phone via OTP and automatically save enquiry"
-                >
-                  <ShieldCheck size={16} />
-                  <span>Verify OTP & Save</span>
-                </button>
-
+              <div className="pt-2 flex flex-col gap-2.5">
                 <button
                   type="button"
                   onClick={handleWhatsAppDirect}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition active:scale-95 text-xs sm:text-sm"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition active:scale-95 text-sm cursor-pointer shadow-md"
                   title="Enquire on WhatsApp immediately"
                 >
-                  <MessageCircle size={16} />
-                  <span>WhatsApp</span>
+                  <MessageCircle size={18} />
+                  <span>Enquire on WhatsApp Direct</span>
                 </button>
               </div>
 
